@@ -146,6 +146,12 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 .srt th,.srt td{padding:5px 8px;border-top:1px solid var(--line);text-align:right;white-space:nowrap;font-family:var(--font-num)}
 .srt th:first-child,.srt td:first-child{text-align:left}
 .srt th{font-family:var(--font-ui);color:var(--muted);font-weight:500}
+.hold{display:grid;grid-template-columns:minmax(64px,auto) 1fr 1fr 36px;gap:6px 8px;align-items:center;width:100%}
+.hold .hh{font-size:12px;color:var(--muted);font-family:var(--font-ui)}
+.hold input{min-width:0;width:100%;min-height:40px}
+.hold .tk{min-height:40px;text-align:left;font-family:var(--font-num);font-weight:700}
+.hold .tk[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.hold .rm{min-height:36px;min-width:36px;padding:0}
 .slov{position:fixed;inset:0;background:rgba(10,14,20,.55);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto}
 .slov[hidden]{display:none}
 .sldlg{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;width:100%;max-width:780px;padding:16px 16px 12px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
@@ -235,6 +241,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 </div>
 
 <div class="stack" id="ccTab" hidden>
+<div id="ccScanSlot"></div>
 <section class="panel pick" aria-label="Covered call setup">
   <fieldset>
     <legend>Your position</legend>
@@ -244,8 +251,10 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
     </div>
     <p class="hint" id="ccSharesNote"></p>
     <p class="hint" id="ccBasisNote">Remembered for each symbol.</p>
-    <label class="f" style="margin-top:8px">Count profit on
-      <select id="ccMode"><option value="option">The call only (premium less buy-back)</option><option value="today">Shares + call, from today's price</option><option value="basis">Shares + call, from my cost basis</option></select></label>
+    <fieldset class="radios" id="ccMode" style="margin-top:8px;border:0;padding:0"><legend style="font-size:12px;color:var(--muted);padding:0 0 2px">Count profit on</legend>
+      <label class="chk"><input type="radio" name="ccModeR" id="ccModeOption" value="option"> The call only (premium less buy-back)</label>
+      <label class="chk"><input type="radio" name="ccModeR" id="ccModeToday" value="today"> <span id="ccModeTodayTxt">Shares + call, from today's price</span></label>
+      <label class="chk" id="ccModeBasisRow"><input type="radio" name="ccModeR" id="ccModeBasis" value="basis"> Shares + call, from my cost basis</label></fieldset>
     <label class="chk" style="margin-top:8px"><input type="checkbox" id="ccPmcc"> Sell against a LEAP instead of shares (poor man's covered call)</label>
     <p class="hint" id="ccPmccNote">Uses strike 1 from the LEAP tab, and the contracts number below.</p>
     <label class="f" style="margin-top:8px">Next earnings date<input type="date" id="ccEarn"></label>
@@ -417,6 +426,7 @@ S.put=Object.assign({tickers:[S.ticker||"CRWD"],days:30,maxAssign:20,hideThin:fa
 S.sl=Object.assign({maxPrice:250,minRet:1.5,lo:15,hi:35,extra:""},S.sl||{});
 if(S.sl.v!==2){S.sl.v=2;S.sl.maxPrice=250}   // one-time: the default stock price limit moved from $100 to $250
 S.favs=S.favs&&!Array.isArray(S.favs)?S.favs:{leap:[S.ticker||"CRWD"],cc:[S.ticker||"CRWD"]};try{const fv=JSON.parse(localStorage.getItem(KEY+"-favs")||"null");if(fv&&Array.isArray(fv.leap)&&Array.isArray(fv.cc))S.favs=fv}catch(e){}
+S.shares=S.shares||{};S.ccK=S.ccK||{};if(!Object.keys(S.shares).length&&S.cc.shares>100&&S.ticker)S.shares[S.ticker]=S.cc.shares;   // shares and chosen strike are kept per ticker
 S.cc.view=S.cc.view||"pick";S.cc.maxAssign=S.cc.maxAssign||20;S.cc.strikes.forEach((r,i)=>r.on=i===0);
 let chain=[];   // listed calls for the expiry in use, from the last refresh
 try{const c=JSON.parse(localStorage.getItem(KEY+"-chain")||"null");if(c&&S.loaded&&c.ticker===S.ticker&&c.expiry===S.expiry)chain=c.rows||[]}catch(e){}
@@ -523,6 +533,7 @@ function autofill(i){
   r.bid=r.ask=r.oi=r.delta=null;
 }
 function onInput(e){
+  if(e.target.closest&&e.target.closest("#favList,#ccScanSlot"))return;   // the holdings table has its own handler
   const id=e.target.id;
   if(/^cc/.test(id)){onCC(e);return}
   if(/^put/.test(id))return;   // the put tab has its own handlers
@@ -1116,7 +1127,8 @@ try{const c=JSON.parse(localStorage.getItem(KEY+"-ccchain")||"null");if(c&&c.tic
 function saveCcChain(){try{localStorage.setItem(KEY+"-ccchain",JSON.stringify({ticker:S.ticker,expiry:S.cc.expiry,rows:ccChain}))}catch(e){}}
 function nearestFriday(s){const day=new Date(pd(s)).getUTCDay();let d=(5-day+7)%7;if(d>3)d-=7;return addDays(s,d)}
 const ccDaysT=()=>Math.max(1,diffDays(S.dataDate,S.cc.expiry));
-const ccN=()=>S.cc.pmcc?S.contracts:Math.max(1,Math.floor(S.cc.shares/100));
+const shs=()=>S.shares[S.ticker]||100;   // shares owned of the open ticker
+const ccN=()=>S.cc.pmcc?S.contracts:Math.max(1,Math.floor(shs()/100));
 const basisOf=()=>{const b=S.basis[S.ticker];return b>0?b:S.spot};
 function ccRound(x){
   if(ccChain.length){let b=ccChain[0];ccChain.forEach(c=>{if(Math.abs(c.k-x)<Math.abs(b.k-x))b=c});return b.k}
@@ -1165,10 +1177,10 @@ async function ccFetch(sym,d,isNew){
     if(calls.length){got={exp,calls};break}
   }
   markMiss("cc",S.cc.days,!!got);
-  if(!got){ccChain=[];S.cc.expiry=f;S.cc.expVerified="none";if(isNew)ccSetByPct([0,0.05,0.10],false);else S.cc.strikes.forEach((r,i)=>ccFill(i));return false}
+  if(!got){ccChain=[];S.cc.expiry=f;S.cc.expVerified="none";if(isNew){ccSetByPct([0,0.05,0.10],false);ccApplySaved(sym)}else S.cc.strikes.forEach((r,i)=>ccFill(i));return false}
   const wasSeed=S.cc.expVerified==="seed";
   ccChain=mapCalls(got.calls,d,got.exp,"call",S.spot);S.cc.expiry=got.exp;S.cc.expVerified="chain";
-  if(isNew||wasSeed)ccSetByPct([0,0.05,0.10],false);else S.cc.strikes.forEach((r,i)=>ccFill(i));
+  if(isNew||wasSeed){ccSetByPct([0,0.05,0.10],false);ccApplySaved(sym)}else S.cc.strikes.forEach((r,i)=>ccFill(i));
   saveCcChain();return true;
 }
 async function ccRefetch(recenter){ // after a new expiry chip: fetch only that chain
@@ -1196,8 +1208,8 @@ function liq(r){
   return {cls,sp,txt:{good:"Liquid",fair:"Fair",poor:"Thin"}[cls]};
 }
 function ccSync(){
-  $("ccShares").value=S.cc.shares;$("ccBasis").value=S.basis[S.ticker]??"";$("ccBasis").placeholder=fn(S.spot);
-  $("ccMode").value=S.cc.mode;$("ccPmcc").checked=S.cc.pmcc;$("ccEarn").value=S.earn[S.ticker]||"";
+  $("ccShares").value=shs();$("ccBasis").value=S.basis[S.ticker]??"";$("ccBasis").placeholder=fn(S.spot);
+  document.querySelectorAll("#ccMode input[type=radio]").forEach(x=>x.checked=x.value===S.cc.mode);$("ccPmcc").checked=S.cc.pmcc;$("ccEarn").value=S.earn[S.ticker]||"";
   $("ccMaxA").value=S.cc.maxAssign;
   S.cc.strikes.forEach((r,i)=>{if(!$("ccK"+i))return;$("ccOn"+i).checked=r.on;$("ccK"+i).value=r.strike??"";$("ccM"+i).value=r.mid??"";$("ccV"+i).value=r.iv??""});
   ccDerived();
@@ -1211,12 +1223,12 @@ function ccDerived(){
   const es=(S.earnSrc||{})[S.ticker];
   const lastRep=(S.earnLast||{})[S.ticker];
   $("ccEarnNote").textContent=es==="est"?"Estimate, not announced: about 13 weeks after the last report"+(lastRep?" ("+fdate(lastRep)+")":"")+". Alpha Vantage's calendar has no date yet. Type the real one when it's announced.":es==="none"?"Alpha Vantage's calendar lists no upcoming earnings date for "+S.ticker+(lastRep?" (last reported "+fdate(lastRep)+")":"")+". Type one if you know it.":es==="auto"?"From Alpha Vantage's earnings calendar. You can type over it.":es==="typed"?"Entered by you. Refresh replaces it with the calendar date if one is listed.":"Fills in from Alpha Vantage's earnings calendar when you press Refresh. You can type over it.";
-  $("ccSharesNote").textContent=S.cc.pmcc?"":"Number of shares, not options. One call is sold per 100 shares: "+Math.floor(S.cc.shares/100)+" call"+(S.cc.shares>=200?"s":"")+".";
+  $("ccSharesNote").textContent=S.cc.pmcc?"":"Number of shares, not options. One call is sold per 100 shares: "+Math.floor(shs()/100)+" call"+(shs()>=200?"s":"")+".";
   $("ccSharesNote").hidden=S.cc.pmcc;
   $("ccBasisNote").textContent=S.basis[S.ticker]>0?"Saved for "+S.ticker+(basisDb?" in your account, so it's here next time.":" in this browser."):"Blank means today's price ($"+fn(S.spot)+"). Saved for each symbol once entered.";
-  $("ccShares").closest("label").hidden=S.cc.pmcc;$("ccBasis").closest("label").hidden=S.cc.pmcc;$("ccMode").querySelector('option[value="basis"]').hidden=S.cc.pmcc;
-  if(S.cc.pmcc&&S.cc.mode==="basis"){S.cc.mode="today";$("ccMode").value="today"}
-  $("ccMode").querySelector('option[value="today"]').textContent=S.cc.pmcc?"LEAP + call":"Shares + call, from today's price";
+  $("ccShares").closest("label").hidden=S.cc.pmcc;$("ccBasis").closest("label").hidden=S.cc.pmcc;$("ccModeBasisRow").hidden=S.cc.pmcc;
+  if(S.cc.pmcc&&S.cc.mode==="basis"){S.cc.mode="today";$("ccModeToday").checked=true}
+  $("ccModeTodayTxt").textContent=S.cc.pmcc?"LEAP + call":"Shares + call, from today's price";
   const L=activeStrikes()[0];
   $("ccPmccNote").textContent=L?"Uses the LEAP tab's $"+L.r.strike+" call ("+fmon(S.expiry)+", mid $"+fn(L.r.mid)+") × "+S.contracts+" contract"+(S.contracts>1?"s":"")+".":"Turn on a strike in the LEAP tab first.";
   [["cvPick","pick"],["cvHold","hold"],["cvExp","exp"]].forEach(([id,v])=>$(id).setAttribute("aria-pressed",S.cc.view===v));
@@ -1231,15 +1243,15 @@ function ccDerived(){
 }
 function onCC(e){
   const id=e.target.id;
-  if(id==="ccShares")S.cc.shares=Math.max(100,Math.round((num($("ccShares").value)||100)/100)*100);
-  if(id==="ccBasis"){const b=num($("ccBasis").value);if(b>0)S.basis[S.ticker]=b;else delete S.basis[S.ticker];basisSave()}
-  if(id==="ccMode")S.cc.mode=$("ccMode").value;
+  if(id==="ccShares"){S.shares[S.ticker]=Math.max(100,Math.round((num($("ccShares").value)||100)/100)*100);basisSave();favRender()}
+  if(id==="ccBasis"){const b=num($("ccBasis").value);if(b>0)S.basis[S.ticker]=b;else delete S.basis[S.ticker];basisSave();favRender()}
+  if(/^ccMode/.test(id)&&e.target.checked)S.cc.mode=e.target.value;
   if(id==="ccPmcc")S.cc.pmcc=$("ccPmcc").checked;
   if(id==="ccMaxA")S.cc.maxAssign=+$("ccMaxA").value||20;
   if(id==="ccEarn"){const v=$("ccEarn").value;if(v)S.earn[S.ticker]=v;else delete S.earn[S.ticker];S.earnSrc=S.earnSrc||{};S.earnSrc[S.ticker]="typed"}
   S.cc.strikes.forEach((r,i)=>{
     if(id==="ccOn"+i){r.on=$("ccOn"+i).checked;if(r.on&&r.mid==null){ccFill(i);ccSync()}}
-    if(id==="ccK"+i){const k=num($("ccK"+i).value);if(k){r.strike=k;ccFill(i);$("ccM"+i).value=r.mid;$("ccV"+i).value=r.iv}}
+    if(id==="ccK"+i){const k=num($("ccK"+i).value);if(k){r.strike=k;ccFill(i);if(i===0)ccRemember();$("ccM"+i).value=r.mid;$("ccV"+i).value=r.iv}}
     if(id==="ccM"+i){r.mid=num($("ccM"+i).value);r.src="typed";r.bid=r.ask=null}
     if(id==="ccV"+i){r.iv=num($("ccV"+i).value);r.src="typed";r.bid=r.ask=null}
   });
@@ -1252,18 +1264,18 @@ function ccPL(r,x){
   if(S.cc.mode==="option")return short;
   if(S.cc.pmcc){const L=activeStrikes()[0].r,tl=totalDays();
     return (bs(x,L.strike,Math.max(0,tl-t)/365,(L.iv+S.ivShift)/100,S.rate/100)-L.mid)*100*n+short}
-  return (x-S.spot)*S.cc.shares+short+(S.cc.mode==="basis"?(S.spot-basisOf())*S.cc.shares:0);
+  return (x-S.spot)*shs()+short+(S.cc.mode==="basis"?(S.spot-basisOf())*shs():0);
 }
 function ccBase(x){ // the same position without the call
   if(S.cc.mode==="option")return 0;
   if(S.cc.pmcc){const L=activeStrikes()[0].r,n=ccN(),t=ccDaysT(),tl=totalDays();
     return (bs(x,L.strike,Math.max(0,tl-t)/365,(L.iv+S.ivShift)/100,S.rate/100)-L.mid)*100*n}
-  return (x-S.spot)*S.cc.shares+(S.cc.mode==="basis"?(S.spot-basisOf())*S.cc.shares:0);
+  return (x-S.spot)*shs()+(S.cc.mode==="basis"?(S.spot-basisOf())*shs():0);
 }
 function ccCapital(r){
   if(S.cc.mode==="option")return r?r.mid*100*ccN():1;
   if(S.cc.pmcc){const L=activeStrikes()[0].r;return L.mid*100*ccN()}
-  return (S.cc.mode==="basis"?basisOf():S.spot)*S.cc.shares;
+  return (S.cc.mode==="basis"?basisOf():S.spot)*shs();
 }
 const ann=(pct,t)=>pct*365/t;
 function ccBreakeven(r,lo,hi){let prev=null;for(let k=0;k<=400;k++){const x=lo+(hi-lo)*k/400,y=ccPL(r,x);if(prev&&prev.y<0&&y>=0)return prev.x+(x-prev.x)*(-prev.y)/(y-prev.y);prev={x,y}}return null}
@@ -1303,7 +1315,7 @@ function renderCC(){
       ["Break-even at expiry",be?"$"+fn(be):"n/a"],
       ["Downside cushion",fp(r.mid/S.spot*100).replace("+","")+" of the price"]
     ]);
-    if(!opt&&!pm&&S.cc.mode==="today"&&S.basis[S.ticker]>0)rows.push(["If called, vs your cost $"+fn(basisOf()),fs((r.strike-basisOf()+r.mid)*S.cc.shares)]);
+    if(!opt&&!pm&&S.cc.mode==="today"&&S.basis[S.ticker]>0)rows.push(["If called, vs your cost $"+fn(basisOf()),fs((r.strike-basisOf()+r.mid)*shs())]);
     return `<div class="tile"><h3><span class="sw" style="background:${colK(i)}"></span>Sell $${r.strike} call · ${esc(fdate(S.cc.expiry))}</h3><dl>${rows.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl></div>`;
   }).join("")+`</div>`;
   // chart for the chosen view
@@ -1320,7 +1332,7 @@ function renderCC(){
       const body=priceSet(r.strike).map(x=>`<tr><td>$${fn(x,x<20?2:0)}${Math.abs(x-r.strike)<0.01?" (strike)":Math.abs(x-S.spot)<0.01?" (today)":""}</td>${days.map(d=>{const v=bs(x,r.strike,(t-d)/365,(r.iv+S.ivShift)/100,S.rate/100)*100*n,net=r.mid*100*n-v;return `<td>${fm(v)}<small class="${cls(net)}">${fs(net)}</small></td>`}).join("")}</tr>`).join("");
       return `<div class="panel"><div style="font-weight:600;margin-bottom:4px"><span class="sw" style="display:inline-block;background:${colK(i)};margin-right:6px"></span>$${r.strike} call</div><div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${body}</tbody></table></div></div>`}).join("")+`</div></div>`;
   }
-  main.innerHTML=html+ccScanHtml();
+  main.innerHTML=html;$("ccScanSlot").innerHTML=ccScanHtml();
   chartObj.wire&&chartObj.wire();
   ccScanWire();
   ccSuggestNote();
@@ -1368,7 +1380,13 @@ function ccSuggestNote(){
   const cur=Math.abs(S.cc.strikes[0].strike-c.k)<0.001;
   el.innerHTML=`<b>Suggested: $${fn(c.k,c.k%1?1:0)} call</b>${cur?" (selected)":""}. ${why.join(", ")}.${sg.tier?" No liquid strike fits, so this one is thin.":""}${c.quote?"":" Model estimate; refresh for quotes."} The highest premium that stays under your limit. Not advice.`;
 }
-function ccPickStrike(k){const r=S.cc.strikes[0];r.on=true;r.strike=k;ccFill(0);ccSync();save();render()}
+function ccRemember(){const k=S.cc.strikes[0].strike;if(S.ticker&&k>0&&S.ccK[S.ticker]!==k){S.ccK[S.ticker]=k;basisSave()}}
+function ccApplySaved(sym){ // the strike you chose last time for this ticker (nearest listed strike if that one is gone)
+  const k=S.ccK[sym];if(!(k>0))return;
+  let use=k;if(ccChain.length){let b=null;ccChain.forEach(c=>{if(!b||Math.abs(c.k-k)<Math.abs(b.k-k))b=c});if(b)use=b.k}
+  const r=S.cc.strikes[0];r.on=true;r.strike=use;ccFill(0);
+}
+function ccPickStrike(k){const r=S.cc.strikes[0];r.on=true;r.strike=k;ccFill(0);ccRemember();ccSync();save();render()}
 
 function ccPickChart(sel){
   const cands=ccCands(),t=ccDaysT(),sg=ccSuggestion(cands),tgt=(S.cc.maxAssign||20)/100,em=ccExpMove(),R=S.srOn?srList().filter(l=>l.side==="R"&&l.p>S.spot):[];
@@ -1461,7 +1479,7 @@ function ccHoldChart(r){
   const legend=`<span style="color:var(--k0)"><i></i><span style="color:var(--muted)">${esc(ccName)}</span></span><span style="color:var(--stock)"><i style="border-top-style:dashed"></i><span style="color:var(--muted)">${holdName}</span></span><span style="color:var(--gain)"><i style="border-top-width:8px"></i><span style="color:var(--muted)">Call helps</span></span><span style="color:var(--loss)"><i style="border-top-width:8px"></i><span style="color:var(--muted)">Call costs you</span></span>`+srLegend();
   const ref=pm?"the LEAP's cost":S.cc.mode==="basis"?"your cost basis $"+fn(basisOf()):"today's price $"+fn(S.spot);
   const html=`<figure class="chart" id="ccFig" data-kind="hold"><figcaption>Sell the $${fn(r.strike)} call or just hold? Profit/loss on ${esc(fdate(S.cc.expiry))}</figcaption>
-    <div class="capsub">You come out ahead by up to ${fm(r.mid*100*n)} if ${esc(S.ticker)} ends below $${fn(xc)}. Above that, you miss out on the rise. Measured from ${ref}${pm?", LEAP valued with the model":", "+S.cc.shares+" shares"}.</div>
+    <div class="capsub">You come out ahead by up to ${fm(r.mid*100*n)} if ${esc(S.ticker)} ends below $${fn(xc)}. Above that, you miss out on the rise. Measured from ${ref}${pm?", LEAP valued with the model":", "+shs()+" shares"}.</div>
     <div class="legend">${legend}</div>
     <svg class="c" viewBox="0 0 ${W} ${H}" role="img" aria-label="Covered call against holding without a call, by price at expiry">${g}</svg><div class="readout"></div></figure>`;
   const wire=()=>{
@@ -1560,7 +1578,7 @@ function ccExpChart(sel){
       S.cc.days=r.days;
       if(row&&row.calls){S.cc.expiry=row.exp;ccChain=row.calls;S.cc.expVerified="chain";saveCcChain()}
       else{S.cc.expiry=r.exp;ccChain=[];S.cc.expVerified="none"}
-      const s0=S.cc.strikes[0];s0.on=true;s0.strike=r.pick.k;ccFill(0);ccSync();save();render();
+      const s0=S.cc.strikes[0];s0.on=true;s0.strike=r.pick.k;ccFill(0);ccRemember();ccSync();save();render();
     }));
   };
   return {html,wire};
@@ -1577,7 +1595,7 @@ $("ccDays").addEventListener("click",e=>{const b=e.target.closest("button[data-d
 document.querySelectorAll(".ccDeltaBtn").forEach(b=>b.onclick=()=>{
   if(b.dataset.suggest){const sg=ccSuggestion();if(!sg){setStatus("No strike meets your limit for this expiry.","err");return}ccPickStrike(sg.c.k);return}
   if(b.dataset.delta)ccSetByDelta([+b.dataset.delta]);else ccSetByPct([+b.dataset.pct],false);
-  ccSync();save();schedule()});
+  ccRemember();ccSync();save();schedule()});
 [["cvPick","pick"],["cvHold","hold"],["cvExp","exp"]].forEach(([id,v])=>$(id).onclick=()=>{S.cc.view=v;ccDerived();save();render()});
 document.querySelector(".stack").addEventListener("input",onInput);
 document.querySelector(".stack").addEventListener("change",onInput);
@@ -1589,13 +1607,13 @@ $("reset").onclick=()=>{
   const tk=S.ticker,L=S.loaded&&S.loaded.ticker===tk?S.loaded:null;
   if(!L&&tk!=="CRWD"){refresh();return}   // numbers on screen belong to another symbol: load this one first
   if(S.tab==="cc"){
-    Object.assign(S.cc,{shares:100,mode:"option",pmcc:false});
+    Object.assign(S.cc,{mode:"option",pmcc:false});
     if(!L){S.cc=Object.assign(DEF().cc,{view:S.cc.view,maxAssign:S.cc.maxAssign});ccChain=[];ccSync();save();render();setStatus("Covered calls back to the defaults (Oct 20 end-of-day data).");return}
     if(S.cc.days===30&&ccChain.length){ccSetByPct([0,0.05,0.10],false);ccSync();save();render();setStatus("Covered calls back to the defaults: 30 days, at-the-money strike. Use the strike picker to compare others.");return}
     S.cc.days=30;S.cc.expiry=nearestFriday(addDays(S.dataDate,30));S.cc.expVerified="none";ccChain=[];
     ccSetByPct([0,0.05,0.10],false);ccSync();save();render();ccRefetch(true);return;
   }
-  const keep={ticker:tk,tab:S.tab,basis:S.basis,earn:S.earn,earnSrc:S.earnSrc,earnLast:S.earnLast,sr:S.sr,srOn:S.srOn,cc:S.cc,loaded:S.loaded,latest:S.latest,miss:S.miss,contracts:S.contracts,rate:S.rate,put:S.put,favs:S.favs};
+  const keep={ticker:tk,tab:S.tab,basis:S.basis,shares:S.shares,ccK:S.ccK,earn:S.earn,earnSrc:S.earnSrc,earnLast:S.earnLast,sr:S.sr,srOn:S.srOn,cc:S.cc,loaded:S.loaded,latest:S.latest,miss:S.miss,contracts:S.contracts,rate:S.rate,put:S.put,favs:S.favs};
   S=Object.assign(DEF(),keep);
   if(L){
     Object.assign(S,{spot:L.spot,dataDate:L.dataDate,high:L.high,expiry:L.expiry,months:L.months,expVerified:L.listed?"chain":"none"});
@@ -1690,6 +1708,9 @@ function putSaveList(){
     try{const bs0=await basisDb.get(),m=(bs0.exists&&(bs0.data()||{}).map)||{};   // account copy wins; local-only entries are pushed up
       let push=false;Object.keys(m).forEach(t=>{const v=+m[t];if(v>0)S.basis[t]=v});
       Object.keys(S.basis).forEach(t=>{if(!(+m[t]>0))push=true});
+      const d0=(bs0.exists&&bs0.data())||{},rs=d0.shares||{},rk=d0.strikes||{};
+      Object.keys(rs).forEach(t=>{if(+rs[t]>0)S.shares[t]=+rs[t]});Object.keys(rk).forEach(t=>{if(+rk[t]>0)S.ccK[t]=+rk[t]});
+      Object.keys(S.shares).forEach(t=>{if(!(+rs[t]>0))push=true});Object.keys(S.ccK).forEach(t=>{if(!(+rk[t]>0))push=true});
       save();if(push)basisSave();ccSync();if(S.tab==="cc")render()}catch(e){}
     putDb=db.collection("data/users/"+id).doc("putWatch");
     const snap=await putDb.get();
@@ -2259,7 +2280,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("slOv").hidden)s
 setInterval(()=>{if(slRun.phase==="running"&&!$("slOv").hidden)slRender()},1000);
 
 /* ---------- saved tickers for the LEAP and covered call tabs ---------- */
-function basisSave(){if(basisDb)basisDb.set({map:S.basis,updated:new Date().toISOString()}).catch(()=>{})}
+function basisSave(){if(basisDb)basisDb.set({map:S.basis,shares:S.shares,strikes:S.ccK,updated:new Date().toISOString()}).catch(()=>{})}
 function favSave(){
   try{localStorage.setItem(KEY+"-favs",JSON.stringify(S.favs))}catch(e){}
   if(favDb)favDb.set({leap:S.favs.leap,cc:S.favs.cc,updated:new Date().toISOString()}).catch(()=>{});
@@ -2271,9 +2292,21 @@ function pillList(label,list,active,pickAttr,rmAttr,emptyTxt){
     (list.length?list.map(t=>`<span class="${t===active?"on":""}"><button type="button" class="favpick" ${pickAttr}="${esc(t)}" aria-pressed="${t===active}" aria-label="Open ${esc(t)}">${esc(t)}</button><button type="button" class="rm" ${rmAttr}="${esc(t)}" aria-label="Remove ${esc(t)} from the list">×</button></span>`).join(""):`<span style="border:0;background:none;padding:6px 4px;font-weight:400;color:var(--muted)">${esc(emptyTxt)}</span>`);
 }
 function symList(raw){return String(raw).toUpperCase().split(/[\s,;]+/).map(t=>t.replace(/[^A-Z0-9.\-]/g,"")).filter(Boolean)}
+function holdRender(el,L,cur,saved){ // covered call list: one row per ticker, with the shares you own and what you paid
+  el.className="";   // not the pill style
+  el.innerHTML=L.length?`<div class="hold" role="group" aria-label="Covered call holdings"><span class="hh">Ticker</span><span class="hh">Shares owned</span><span class="hh">Cost basis $</span><span></span>`+
+    L.map(t=>`<button type="button" class="tk" data-fav="${esc(t)}" aria-pressed="${t===cur}" aria-label="Open ${esc(t)}">${esc(t)}</button>`+
+      `<input type="number" inputmode="numeric" step="100" min="100" placeholder="100" data-hsh="${esc(t)}" value="${S.shares[t]||""}" aria-label="Shares of ${esc(t)}">`+
+      `<input type="number" inputmode="decimal" step="0.01" min="0" placeholder="today" data-hbasis="${esc(t)}" value="${S.basis[t]||""}" aria-label="Cost basis per share of ${esc(t)}">`+
+      `<button type="button" class="rm" data-favrm="${esc(t)}" aria-label="Remove ${esc(t)} from the list">×</button>`).join("")+`</div>`
+    :`<div class="hint" style="margin:4px 0">Empty. Add a symbol below.</div>`;
+  if(cur&&!saved)el.insertAdjacentHTML("beforeend",`<div style="margin-top:8px"><button type="button" class="add" id="favAdd">☆ Save ${esc(cur)}</button></div>`);
+}
 function favRender(){
   const el=$("favList");if(!el)return;
   const L=favL(),cur=(S.ticker||"").toUpperCase(),saved=L.includes(cur);
+  if(S.tab==="cc"){holdRender(el,L,cur,saved);return}
+  el.className="wl fav";
   el.innerHTML=pillList(S.tab==="cc"?"Covered call list":"LEAP list",L,cur,"data-fav","data-favrm","Empty. Add a symbol below.")+
     (cur&&!saved?`<button type="button" class="add" id="favAdd">☆ Save ${esc(cur)}</button>`:"");
 }
@@ -2284,6 +2317,11 @@ function favAddMany(){
 }
 $("favAddBtn").onclick=favAddMany;
 $("favAddIn").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();favAddMany()}});
+$("favList").addEventListener("change",e=>{
+  const sh=e.target.closest("[data-hsh]"),bs=e.target.closest("[data-hbasis]");
+  if(sh){const t=sh.dataset.hsh,n=Math.round((num(sh.value)||0)/100)*100;if(n>=100){S.shares[t]=n;sh.value=n}else{delete S.shares[t];sh.value=""}basisSave();save();if(t===S.ticker){ccSync();render()}return}   // the table is not redrawn here: that would fire a blur on a removed field
+  if(bs){const t=bs.dataset.hbasis,b=num(bs.value);if(b>0)S.basis[t]=b;else delete S.basis[t];basisSave();save();if(t===S.ticker){ccSync();render()}}
+});
 $("favList").addEventListener("click",e=>{
   const p=e.target.closest("[data-fav]"),rm=e.target.closest("[data-favrm]"),add=e.target.closest("#favAdd");
   const k=S.tab==="cc"?"cc":"leap";
