@@ -14,6 +14,6 @@ Update the artifact source, then run `python3 build_hosted.py leap-lab.artifact-
 Project "alanfoosh's Project", new table `options_lab_user_data` (one row per user: key, saved tickers, watch list, cost basis) with row-level security so each person can read and write only their own row. The project's other tables are untouched.
 
 ## Known limits
-- Each person's Alpha Vantage key is stored in their row (only they can read it) and in their browser.
+- Signed in, each person's Alpha Vantage key is stored only in their own account row (only they can read it), not in the browser. Signed out, it stays in the browser.
 - Not yet verified against the live Alpha Vantage web API from a hosted address: the options call with an `expiration` filter. The page filters by expiry itself if Alpha Vantage returns every expiry.
 - A free Alpha Vantage key cannot read historical options or adjusted prices.

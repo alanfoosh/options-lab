@@ -41,7 +41,7 @@ account='''
     <div class="btnrow" style="margin-top:8px"><button type="button" class="primary" id="acIn">Sign in</button><button type="button" id="acUp">Create account</button></div>
   </div>
   <div id="acctIn" hidden style="margin-top:12px"><span id="acWho"></span> <button type="button" id="acOut" style="margin-left:8px">Sign out</button></div>
-  <p class="hint" id="acMsg">Sign in to keep your watch list, saved tickers, cost basis and key with your account, on any device. Without an account they stay in this browser. Signing out clears this browser's copy; your account keeps its own.</p>
+  <p class="hint" id="acMsg">Sign in to keep your watch list, saved tickers, cost basis and Alpha Vantage key with your account, on any device. Signed in, the key is kept in your account only, not in this browser. Without an account everything stays in this browser. Signing out clears this browser's copy; your account keeps its own.</p>
 </section>
 '''
 rep('<div class="stack">',account+'\n<div class="stack">')
@@ -53,13 +53,16 @@ const SB_URL="__SB_URL__",SB_KEY="__SB_KEY__",LS="leap-lab-v2",TABLE="options_la
 const $=id=>document.getElementById(id);
 const get=k=>{try{return localStorage.getItem(k)}catch(e){return null}},set=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SB_URL,SB_KEY):null;
-let session=null;
+let session=null,memKey=null;   // signed in: the key lives only in the account and in memory; signed out: in this browser
+const getKey=()=>session?(memKey||""):(get(LS+"-avkey")||"").trim();
+const del=k=>{try{localStorage.removeItem(k)}catch(e){}};
+let keyDone;const keyReady=new Promise(r=>{keyDone=r});
 const ready=(async()=>{try{if(sb){const r=await sb.auth.getSession();session=(r&&r.data&&r.data.session)||null}}catch(e){}})();
 if(sb)sb.auth.onAuthStateChange((ev,s)=>{const was=!!session;session=s||null;if(ev==="SIGNED_IN"&&!was&&window.__shimBooted)location.reload();if(ev==="SIGNED_OUT"&&was&&window.__shimBooted)location.reload()});
 
 /* ----- Alpha Vantage over its web API, with the user's own key ----- */
 const mcp={async callTool(server,tool,input){
-  const key=(get(LS+"-avkey")||"").trim();
+  await keyReady;const key=getKey();
   if(!key)throw {code:"needs_reauth",message:"No Alpha Vantage key"};
   if(tool==="HISTORICAL_OPTIONS"&&input&&input.expiration&&dayCache.has(input.symbol+"|"+input.date)){
     const f=dayCache.get(input.symbol+"|"+input.date).filter(x=>x.expiration===input.expiration);
@@ -98,24 +101,29 @@ const note=t=>{$("acMsg").textContent=t};
 function showAcct(){
   $("acctIn").hidden=!session;$("acctOut").hidden=!!session;
   if(session)$("acWho").textContent="Signed in as "+session.user.email+".";
-  const k=(get(LS+"-avkey")||"").trim();
-  $("avNote").textContent=k?"Key saved"+(session?" to this browser and your account.":" in this browser."):"Needed for live data. Premium keys include end-of-day options.";
+  const k=getKey();
+  $("avNote").textContent=k?"Key saved"+(session?" in your account only (not in this browser).":" in this browser (sign in to keep it in your account instead)."):"Needed for live data. Premium keys include end-of-day options.";
 }
-async function keySync(){ // the account copy wins; a key only on this browser is pushed up
-  if(!sb||!session)return;
-  try{const {data}=await sb.from(TABLE).select("av_key").eq("user_id",session.user.id).maybeSingle();
-    const remote=data&&data.av_key,local=(get(LS+"-avkey")||"").trim();
-    if(remote&&remote!==local){set(LS+"-avkey",remote)}
-    else if(!remote&&local){await sb.from(TABLE).upsert({user_id:session.user.id,av_key:local,updated_at:new Date().toISOString()},{onConflict:"user_id"})}
-  }catch(e){}
-  showAcct();
+async function keySync(){ // signed in: the account copy is used; a key only on this browser is moved up and removed from the browser
+  if(sb&&session){
+    try{const {data}=await sb.from(TABLE).select("av_key").eq("user_id",session.user.id).maybeSingle();
+      const remote=data&&data.av_key,local=(get(LS+"-avkey")||"").trim();
+      if(remote)memKey=remote;
+      else if(local){const {error}=await sb.from(TABLE).upsert({user_id:session.user.id,av_key:local,updated_at:new Date().toISOString()},{onConflict:"user_id"});if(!error)memKey=local}
+      if(memKey)del(LS+"-avkey");
+    }catch(e){}
+  }
+  keyDone();$("avKey").value=getKey();showAcct();
 }
-$("avKey").value=get(LS+"-avkey")||"";
+$("avKey").value=session?"":(get(LS+"-avkey")||"");
 $("avRate").value=get(LS+"-avrate")||"75";
 $("avRate").onchange=()=>{set(LS+"-avrate",$("avRate").value);location.reload()};
 $("avSave").onclick=async()=>{
-  const k=$("avKey").value.trim();set(LS+"-avkey",k);
-  if(sb&&session){try{await sb.from(TABLE).upsert({user_id:session.user.id,av_key:k||null,updated_at:new Date().toISOString()},{onConflict:"user_id"})}catch(e){note("Saved in this browser, but couldn't save to your account.");}}
+  const k=$("avKey").value.trim();
+  if(sb&&session){
+    try{const {error}=await sb.from(TABLE).upsert({user_id:session.user.id,av_key:k||null,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+      if(error)throw error;memKey=k;del(LS+"-avkey")}catch(e){note("Couldn't save the key to your account. Try again.");return}
+  }else set(LS+"-avkey",k);
   showAcct();
 };
 const creds=()=>({email:$("acEmail").value.trim(),password:$("acPass").value});
@@ -127,7 +135,7 @@ $("acUp").onclick=async()=>{if(!sb){note("Sign-in isn't available right now (cou
   if(error){note(error.message);return}
   if(!data.session)note("Almost done: check your email and tap the confirmation link, then you'll be signed in.")};
 $("acOut").onclick=async()=>{await sb.auth.signOut();try{Object.keys(localStorage).filter(k=>k.indexOf(LS)===0).forEach(k=>localStorage.removeItem(k))}catch(e){}location.reload()};
-ready.then(()=>{showAcct();keySync();window.__shimBooted=true});
+ready.then(()=>{keySync();window.__shimBooted=true});
 showAcct();
 })();
 </script>
