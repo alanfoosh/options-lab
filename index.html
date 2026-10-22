@@ -218,7 +218,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 </section>
 
 
-<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 36 (built 2026-10-22)</p></div>
+<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 37 (built 2026-10-22)</p></div>
 <div class="stack" id="leapTab">
 <section class="panel pick" aria-label="LEAP and strikes">
   <fieldset>
@@ -2295,9 +2295,11 @@ async function slStart(){
       slRun.puts++;slRender();
     }
     slPxSave();
-    slRun.rows.sort((a,b)=>a.nwarn-b.nwarn||b.ann-a.ann);slRun.qualified=slRun.rows.length;slRun.rows=slRun.rows.slice(0,15);   // fewest warning flags first, then the best annual return
+    slRun.rows.sort((a,b)=>a.nwarn-b.nwarn||b.ann-a.ann);const have=new Set(S.put.tickers);let nNew=0;   // 15 stocks you do not have yet; the ones already in your list are shown too, without counting
+    slRun.qualified=slRun.rows.filter(o=>!have.has(o.sym)).length;slRun.owned=slRun.rows.filter(o=>have.has(o.sym)).length;
+    slRun.rows=slRun.rows.filter(o=>have.has(o.sym)||++nNew<=15);   // fewest warning flags first, then the best annual return
     slRun.phase=slRun.cancel?"cancelled":"done";
-    slLast={at:Date.now(),qualified:slRun.qualified,days,maxA,maxPrice:slRun.maxPrice,minRet:slRun.minRet,lo:slRun.lo,hi:slRun.hi,total:slRun.total,checked:slRun.checked,zone:slRun.zone,skipped:slRun.skipped,over:slRun.over,calls:avTotal-slRun.calls0,rows:slRun.rows};
+    slLast={at:Date.now(),qualified:slRun.qualified,owned:slRun.owned,days,maxA,maxPrice:slRun.maxPrice,minRet:slRun.minRet,lo:slRun.lo,hi:slRun.hi,total:slRun.total,checked:slRun.checked,zone:slRun.zone,skipped:slRun.skipped,over:slRun.over,calls:avTotal-slRun.calls0,rows:slRun.rows};
     try{localStorage.setItem(KEY+"-sl",JSON.stringify(slLast))}catch(e){}
   }catch(e){slRun.phase="error";slRun.note=errMsg(e)}
   finally{avCtx="";slPxSave();slRender();syncPutBtn();renderPutSoon();putDerived()}
@@ -2333,7 +2335,7 @@ function slRender(){
   if(run.phase==="done"||run.phase==="cancelled"||(run.phase==="setup"&&slLast)){
     const L=run.phase==="setup"?slLast:{...slLast,rows:run.rows},rows=L.rows,show=rows,qual=L.qualified||rows.length;
     const inList=t=>S.put.tickers.includes(t),ageTxt=new Date(L.at).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
-    const head=`<div style="font-weight:600">${run.phase==="cancelled"?"Stopped early. ":""}${qual>rows.length?"Best "+rows.length+" of "+qual+" that passed":rows.length+" candidate"+(rows.length===1?"":"s")}</div>
+    const head=`<div style="font-weight:600">${run.phase==="cancelled"?"Stopped early. ":""}${qual>rows.length-(L.owned||0)?"Best "+(rows.length-(L.owned||0))+" new stocks of "+qual+" that passed":qual+" new candidate"+(qual===1?"":"s")}${L.owned?" (plus "+L.owned+" already in your list)":""}</div>
       ${sup(`Checked ${L.checked} of ${L.total} stocks (${L.over} over $${L.maxPrice}, ${L.zone} in the ${L.lo}–${L.hi}% band zone${L.skipped?", "+L.skipped+" skipped for missing or odd data":""}) · ${L.days}-day puts, up to ${L.maxA}% chance of assignment, at least ${L.minRet}% return · ${L.calls} Alpha Vantage calls · ${ageTxt}. Best first: fewest warnings, then highest annual return. End-of-day data; not advice.`)}`;
     const list=show.length?show.map(o=>{const dis=inList(o.sym);
       return `<label class="slrow${dis?" dis":""}"><input type="checkbox" data-sl="${esc(o.sym)}"${dis?" disabled":""}${slSel.has(o.sym)?" checked":""}><div><span class="sym">${esc(o.sym)}</span> <span class="sub">$${fn(o.close)} · band ${fn(o.pos,0)}% ${dis?'· <b>In your watch list</b>':""}</span>
