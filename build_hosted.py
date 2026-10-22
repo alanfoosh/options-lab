@@ -81,7 +81,7 @@ const mcp={async callTool(server,tool,input){
   }
   const p=new URLSearchParams();
   Object.entries(input||{}).forEach(([k,v])=>{if(k==="return_full_data"||v==null)return;p.set(k,v)});
-  p.set("function",tool);p.set("apikey",key);
+  p.set("function",tool==="COMPANY_OVERVIEW"?"OVERVIEW":tool);p.set("apikey",key);
   let r;try{r=await fetch("https://www.alphavantage.co/query?"+p.toString())}catch(e){throw {code:"server_unavailable",message:"Couldn't reach Alpha Vantage",retryable:true}}
   if(!r.ok)throw {code:"tool_error",message:"Alpha Vantage answered HTTP "+r.status};
   const text=await r.text();let payload=text;try{payload=JSON.parse(text)}catch(e){}
