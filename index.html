@@ -1,0 +1,2148 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>*,*::before,*::after{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--ink);font-family:var(--font-ui)}input[type=password],input[type=email]{font:500 16px var(--font-num);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 10px;min-height:42px;width:100%;min-width:0}</style>
+<title>Options Scenario Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap">
+<style>
+/* Layout: sticky input rail on the left, charts and readouts on the right; stacks on phones. */
+:root{
+  --bg:#f3f4f1; --panel:#fbfbf9; --ink:#1b2430; --muted:#5d6877; --line:#d6d9d3; --grid:#e4e6e1;
+  --accent:#1f5fa8; --accent-ink:#fff; --gain:#1d7a46; --loss:#b3382f; --zero:#1b2430;
+  --h0:#a7c1dc; --h1:#6f9acb; --h2:#1f5fa8; --h3:#0f2f57; --hx:#c9741a;
+  --k0:#1f5fa8; --k1:#c9741a; --k2:#2a8a52; --stock:#7a8494; --lvl:#8a6fb5; --shade:rgba(179,56,47,.06);
+  --font-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-num:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --font-display:"Newsreader",Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121820; --panel:#19212b; --ink:#e6eaf0; --muted:#97a3b3; --line:#2c3745; --grid:#242e3a;
+  --accent:#6aa6ec; --accent-ink:#0c1118; --gain:#5cc58a; --loss:#ef7b70; --zero:#e6eaf0;
+  --h0:#3d5a7c; --h1:#5d8fc7; --h2:#8dbbf2; --h3:#d3e5fb; --hx:#f0a04b;
+  --k0:#6aa6ec; --k1:#f0a04b; --k2:#5cc58a; --stock:#8e9aab; --lvl:#b79be0; --shade:rgba(239,123,112,.09);
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121820; --panel:#19212b; --ink:#e6eaf0; --muted:#97a3b3; --line:#2c3745; --grid:#242e3a;
+  --accent:#6aa6ec; --accent-ink:#0c1118; --gain:#5cc58a; --loss:#ef7b70; --zero:#e6eaf0;
+  --h0:#3d5a7c; --h1:#5d8fc7; --h2:#8dbbf2; --h3:#d3e5fb; --hx:#f0a04b;
+  --k0:#6aa6ec; --k1:#f0a04b; --k2:#5cc58a; --stock:#8e9aab; --lvl:#b79be0; --shade:rgba(239,123,112,.09);
+  color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:14px;line-height:1.45;
+  padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1280px;margin:0 auto}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px}
+h1{font-family:var(--font-display);font-weight:600;font-size:30px;line-height:1.1;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0;max-width:62ch}
+.layout{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:20px;align-items:start}
+@media(max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}}
+.rail{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:16px;min-width:0}
+@media(min-width:901px){.rail{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}}
+fieldset{border:0;margin:0;padding:0;min-width:0}
+legend{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:0 0 8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:0}
+input[type=text],input[type=number],input[type=date],select{
+  font:500 16px var(--font-num);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;
+  padding:9px 10px;min-height:42px;width:100%;min-width:0}
+select{font-family:var(--font-ui)}
+input:focus-visible,select:focus-visible,button:focus-visible,.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+input[type=range]{width:100%;accent-color:var(--accent);min-height:32px}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent);flex:none}
+.hint{font-size:12px;color:var(--muted);margin:6px 0 0}
+.strike{display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:8px;align-items:end;padding:10px 0;border-top:1px solid var(--line)}
+.strike .tick{align-self:center;padding-bottom:0;display:flex;align-items:center;height:42px}
+.strike .meta{grid-column:1/-1;font-size:12px;color:var(--muted);font-family:var(--font-num)}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;min-height:32px}
+button{font:600 14px var(--font-ui);border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:9px 14px;min-height:42px;cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:disabled{opacity:.55;cursor:default}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px}
+.status{font-size:12.5px;border-radius:6px;padding:8px 10px;border:1px solid var(--line);background:var(--bg);color:var(--muted)}
+.status.err{border-color:var(--loss);color:var(--ink)}
+.status.ok{border-color:var(--gain)}
+.status.wait{border-color:var(--warn,#c98a00);font-weight:600}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;border-radius:0;background:transparent;min-height:42px;padding:9px 14px;color:var(--muted)}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.main{display:flex;flex-direction:column;gap:16px;min-width:0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,340px));gap:12px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.tile h3{margin:0 0 6px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.sw{width:12px;height:12px;border-radius:3px;flex:none}
+.tile dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:12.5px}
+.tile dt{color:var(--muted)} .tile dd{margin:0;text-align:right;font-family:var(--font-num);font-variant-numeric:tabular-nums}
+figure.chart{position:relative;margin:0;max-width:900px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px 14px;min-width:0}
+figcaption{font-weight:600;font-size:14px;margin-bottom:2px;text-wrap:balance}
+.capsub{font-size:12px;color:var(--muted);margin-bottom:6px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin:4px 0 2px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:18px;height:0;border-top:3px solid currentColor}
+svg.c{display:block;width:100%;height:auto;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:crosshair}
+svg text{font-family:var(--font-num);font-size:11px;fill:var(--muted)}
+svg .lab{fill:var(--ink)}
+.readout{margin-top:6px;overflow-x:auto}
+.snap{float:right;margin:-4px -6px 4px 8px;font:inherit;font-size:12px;padding:6px 10px;min-height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.snap:active{transform:translateY(1px)}
+.readout table{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+.readout caption{text-align:left;font-weight:600;padding:4px 0}
+.readout th,.readout td{padding:4px 8px;border-top:1px solid var(--line);text-align:right;white-space:nowrap}
+.readout th:first-child,.readout td:first-child{text-align:left}
+.readout td{font-family:var(--font-num)}
+.gain{color:var(--gain)} .loss{color:var(--loss)}
+footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
+.empty{padding:24px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);text-align:center}
+@media(max-width:600px){.readout th,.readout td{padding:4px 6px}}
+.jump{display:none;margin-top:8px;font-weight:600;color:var(--accent)}
+.readout caption{white-space:normal;display:block;caption-side:top}
+.stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.topgrid{display:grid;grid-template-columns:minmax(120px,1fr) minmax(140px,1fr) minmax(160px,1fr) auto;gap:10px;align-items:end}
+.topgrid button{white-space:nowrap}
+.pick{display:grid;grid-template-columns:minmax(260px,1fr) minmax(0,2fr);gap:24px;align-items:start}
+.more{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px;align-items:start}
+@media(max-width:900px){.pick{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){.topgrid{grid-template-columns:1fr 1fr}.topgrid button{grid-column:1/-1}}
+.stack>.seg,.tabs{align-self:flex-start}
+.tabs{display:inline-flex;gap:4px;border-bottom:2px solid var(--line);width:100%}
+.tabs button{border:0;border-radius:6px 6px 0 0;background:transparent;color:var(--muted);font-size:15px;padding:10px 16px;margin-bottom:-2px;border-bottom:2px solid transparent}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{min-height:38px;padding:6px 12px;font-family:var(--font-num);font-weight:500}
+.chips button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.pill{display:inline-block;font:600 11px var(--font-ui);letter-spacing:.04em;padding:2px 8px;border-radius:999px;border:1px solid currentColor}
+.pill.good{color:var(--gain)} .pill.fair{color:var(--hx)} .pill.poor{color:var(--loss)}
+.banner{border:1px solid var(--line);border-left:4px solid var(--hx);background:var(--panel);border-radius:8px;padding:10px 12px;font-size:13px}
+.banner.info{border-left-color:var(--stock)}
+.banner.bad{border-left-color:var(--loss);border-color:var(--loss)}
+.ptbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.ptbl table{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+.ptbl th,.ptbl td{padding:7px 8px;border-top:1px solid var(--line);text-align:right;white-space:nowrap}
+.ptbl thead th{border-top:0;position:sticky;top:0;background:var(--panel)}
+.ptbl th button{all:unset;cursor:pointer;color:var(--muted);font-family:var(--font-ui);font-weight:500;font-size:12px;padding:4px 0;min-height:24px}
+.ptbl th button[aria-sort]{color:var(--ink);font-weight:600}
+.ptbl th:first-child,.ptbl td:first-child{text-align:left;position:sticky;left:0;background:var(--panel);z-index:1}
+.ptbl td{font-family:var(--font-num)}
+.ptbl tbody tr{cursor:pointer}
+.ptbl tbody tr.open td{background:color-mix(in srgb,var(--accent) 10%,var(--panel))}
+.ptbl small{display:block;font-size:11px;color:var(--muted)}
+.wl{display:flex;flex-wrap:wrap;gap:6px}
+.wl span{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:999px;padding:2px 4px 2px 12px;font-family:var(--font-num);font-weight:600;background:var(--bg)}
+.wl.fav span{padding:0;gap:0}
+.wl.fav .favpick{min-height:34px;min-width:0;padding:0 4px 0 12px;font:inherit;font-weight:600;color:var(--ink);border-radius:999px 0 0 999px}
+.wl.fav span.on{background:var(--accent);border-color:var(--accent)}
+.wl.fav span.on .favpick,.wl.fav span.on .rm{color:var(--accent-ink)}
+.wl.fav .add{border:1px dashed var(--line);border-radius:999px;padding:0 12px;min-height:36px;font:inherit;font-size:13px;color:var(--muted);background:transparent}
+.wl button{min-height:32px;min-width:32px;padding:0;border:0;background:transparent;color:var(--muted);font-size:16px;border-radius:999px}
+.chips button.nochain{position:relative;color:var(--loss);border-color:var(--loss);text-decoration:line-through}
+.chips button.nochain::after{content:"\274C";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;opacity:.9;pointer-events:none}
+.ccgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.bb{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.bb .panel{padding:12px}
+.bb table{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+.bb th,.bb td{padding:4px 6px;border-top:1px solid var(--line);text-align:right;white-space:nowrap}
+.bb th:first-child,.bb td:first-child{text-align:left}
+.bb td{font-family:var(--font-num)}
+.bb small{display:block;font-size:11px}
+.srt{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+.srt th,.srt td{padding:5px 8px;border-top:1px solid var(--line);text-align:right;white-space:nowrap;font-family:var(--font-num)}
+.srt th:first-child,.srt td:first-child{text-align:left}
+.srt th{font-family:var(--font-ui);color:var(--muted);font-weight:500}
+</style>
+
+<div class="wrap">
+<header>
+  <div>
+    <h1>Options Scenario Lab</h1>
+    <p class="sub">Model LEAP calls, covered calls and cash-secured puts: pick strikes and expiries, compare premium, chance of assignment and liquidity, and see profit and loss. Hover or tap a chart for exact numbers.</p>
+  </div>
+</header>
+
+
+<section class="panel" id="acct" aria-label="Account and Alpha Vantage key">
+  <div style="font-weight:600;margin-bottom:8px">Account</div>
+  <div class="grid2">
+    <label class="f">Your Alpha Vantage key<input type="password" id="avKey" autocomplete="off" spellcheck="false" placeholder="paste your key"></label>
+    <label class="f">Calls per minute your key allows<select id="avRate"><option value="5">5 (free key)</option><option value="75">75 (premium)</option><option value="150">150</option><option value="300">300</option><option value="600">600</option><option value="1200">1200</option></select></label>
+  </div>
+  <div class="btnrow" style="margin-top:8px"><button type="button" id="avSave">Save key</button><span class="hint" id="avNote" style="align-self:center;margin:0"></span></div>
+  <div id="acctOut" style="margin-top:12px">
+    <div class="grid2">
+      <label class="f">Email<input type="email" id="acEmail" autocomplete="email"></label>
+      <label class="f">Password<input type="password" id="acPass" autocomplete="current-password"></label>
+    </div>
+    <div class="btnrow" style="margin-top:8px"><button type="button" class="primary" id="acIn">Sign in</button><button type="button" id="acUp">Create account</button></div>
+  </div>
+  <div id="acctIn" hidden style="margin-top:12px"><span id="acWho"></span> <button type="button" id="acOut" style="margin-left:8px">Sign out</button></div>
+  <p class="hint" id="acMsg">Sign in to keep your watch list, saved tickers, cost basis and key with your account, on any device. Without an account they stay in this browser. Signing out clears this browser's copy; your account keeps its own.</p>
+</section>
+
+<div class="stack">
+<div class="tabs" role="tablist" aria-label="Strategy">
+  <button type="button" role="tab" id="tabLeap" aria-selected="true">LEAP calls</button>
+  <button type="button" role="tab" id="tabCC" aria-selected="false">Covered calls</button>
+  <button type="button" role="tab" id="tabPut" aria-selected="false">Sell puts</button>
+</div>
+
+<section class="panel" aria-label="Stock">
+  <div class="topgrid" id="stockGrid">
+    <label class="f">Symbol<input type="text" id="ticker" autocapitalize="characters" autocomplete="off" spellcheck="false"></label>
+    <label class="f">Starting stock price ($)<input type="number" id="spot" inputmode="decimal" step="0.01" min="0"></label>
+    <label class="f">Data date<input type="date" id="dataDate"></label>
+    <button type="button" class="primary" id="refresh">Refresh end-of-day data</button>
+  </div>
+  <div id="favRow" style="margin-top:10px">
+    <div class="wl fav" id="favList" role="group" aria-label="Saved tickers"></div>
+  </div>
+  <div class="status" id="status" style="margin-top:10px" role="status" aria-live="polite"></div>
+  <p class="hint" id="apiInfo" style="margin:6px 0 0"></p>
+  <p class="hint" id="stockHint"><b>Starting stock price</b> is the price every scenario starts from (the stock's price on the data date, not what you paid). It refills on each Refresh; type over it for a what-if, and chain quotes then become model estimates. What you paid for shares is the Cost basis on the Covered calls tab. Price and data date fill in from the latest close. Switching tickers reuses a saved copy until a newer close can exist (re-checking every 30 minutes while Alpha Vantage catches up). Refresh always fetches fresh. You can type over the numbers.</p>
+</section>
+
+
+<div class="stack" id="leapTab">
+<section class="panel pick" aria-label="LEAP and strikes">
+  <fieldset>
+    <legend>LEAP length</legend>
+    <div class="grid2">
+      <label class="f">Length
+        <select id="months">
+          <option value="6">6 months</option><option value="9">9 months</option><option value="12">1 year</option>
+          <option value="15">15 months</option><option value="18">18 months</option><option value="24">2 years</option>
+        </select></label>
+      <label class="f">Expiry date<input type="date" id="expiry"></label>
+    </div>
+    <p class="hint" id="expNote"></p>
+  </fieldset>
+  <fieldset>
+    <legend>Strikes (up to three)</legend>
+    <div id="strikes"></div>
+    <p class="hint">Mid price and implied volatility fill in from the chain when the strike is listed. Otherwise the page estimates them from the model. Edit either one by hand at any time.</p>
+  </fieldset>
+</section>
+
+<div class="seg" role="group" aria-label="Chart view">
+  <button type="button" id="vPayoff" aria-pressed="true">Profit/loss by price</button>
+  <button type="button" id="vTime" aria-pressed="false">Return over time</button>
+</div>
+
+<section class="panel" id="timeInputs" aria-label="Exit prices"><fieldset>
+      <legend>Exit prices: where the stock is when you sell</legend>
+      <div class="grid2" style="grid-template-columns:repeat(3,1fr)">
+        <label class="f">Exit 1<input type="number" id="x0" inputmode="decimal" step="1" min="1"></label>
+        <label class="f">Exit 2<input type="number" id="x1" inputmode="decimal" step="1" min="1"></label>
+        <label class="f">Exit 3<input type="number" id="x2" inputmode="decimal" step="1" min="1"></label>
+      </div>
+      <p class="hint">The stock is assumed to sit at the exit price on the day you sell. Leave a box empty to hide that chart.</p>
+    </fieldset></section>
+<main class="main" id="main" aria-live="off"></main>
+</div>
+
+<div class="stack" id="ccTab" hidden>
+<section class="panel pick" aria-label="Covered call setup">
+  <fieldset>
+    <legend>Your position</legend>
+    <div class="grid2">
+      <label class="f">Shares owned<input type="number" id="ccShares" inputmode="numeric" step="100" min="100"></label>
+      <label class="f">Cost basis per share ($)<input type="number" id="ccBasis" inputmode="decimal" step="0.01" min="0"></label>
+    </div>
+    <p class="hint" id="ccSharesNote"></p>
+    <p class="hint" id="ccBasisNote">Remembered for each symbol.</p>
+    <label class="f" style="margin-top:8px">Count profit on
+      <select id="ccMode"><option value="option">The call only (premium less buy-back)</option><option value="today">Shares + call, from today's price</option><option value="basis">Shares + call, from my cost basis</option></select></label>
+    <label class="chk" style="margin-top:8px"><input type="checkbox" id="ccPmcc"> Sell against a LEAP instead of shares (poor man's covered call)</label>
+    <p class="hint" id="ccPmccNote">Uses strike 1 from the LEAP tab, and the contracts number below.</p>
+    <label class="f" style="margin-top:8px">Next earnings date<input type="date" id="ccEarn"></label>
+    <p class="hint" id="ccEarnNote">Fills in from Alpha Vantage's earnings calendar when you press Refresh. You can type over it.</p>
+  </fieldset>
+  <fieldset>
+    <legend>Call to sell</legend>
+    <div class="chips" id="ccDays" role="group" aria-label="Days to expiry">
+      <button type="button" data-days="30">30 days</button><button type="button" data-days="45">45 days</button><button type="button" data-days="60">60 days</button><button type="button" data-days="90">90 days</button><button type="button" data-days="180">180 days</button><button type="button" data-days="365">1 year</button>
+    </div>
+    <p class="hint" id="ccExpNote"></p>
+    <div id="ccStrikes"></div>
+    <label class="f" style="margin-top:10px">Highest chance of being called away you'll accept
+      <select id="ccMaxA"><option value="10">10%</option><option value="15">15%</option><option value="20">20%</option><option value="25">25%</option><option value="30">30%</option><option value="40">40%</option></select></label>
+    <p class="hint" id="ccSuggest"></p>
+    <div class="btnrow" style="margin-top:8px;align-items:center"><span class="hint" style="margin:0">Quick pick:</span>
+      <button type="button" data-suggest="1" class="ccDeltaBtn">Suggested</button>
+      <button type="button" data-pct="0" class="ccDeltaBtn">ATM</button>
+      <button type="button" data-pct="0.05" class="ccDeltaBtn">+5%</button>
+      <button type="button" data-pct="0.10" class="ccDeltaBtn">+10%</button>
+      <button type="button" data-delta="0.3" class="ccDeltaBtn">Delta 0.30</button>
+      <button type="button" data-delta="0.2" class="ccDeltaBtn">Delta 0.20</button></div>
+  </fieldset>
+</section>
+<div class="seg" role="group" aria-label="Covered call chart">
+  <button type="button" id="cvPick" aria-pressed="true">Strike picker</button>
+  <button type="button" id="cvHold" aria-pressed="false">vs just holding</button>
+  <button type="button" id="cvExp" aria-pressed="false">Expiries</button>
+</div>
+<main class="main" id="ccMain" aria-live="off"></main>
+</div>
+
+<div class="stack" id="putTab" hidden>
+<section class="panel pick" aria-label="Put scanner setup">
+  <fieldset>
+    <legend>Watch list</legend>
+    <div class="wl" id="putList"></div>
+    <div class="btnrow" style="margin-top:8px;flex-wrap:nowrap"><input type="text" id="putAdd" placeholder="Add symbols, e.g. AAPL, MSFT" autocapitalize="characters" autocomplete="off" spellcheck="false" style="flex:1;min-width:0" aria-label="Symbols to add"><button type="button" id="putAddBtn">Add</button></div>
+    <p class="hint" id="putSaveNote">Your list is saved, so it's here next time.</p>
+  </fieldset>
+  <fieldset>
+    <legend>Put to sell</legend>
+    <div class="chips" id="putDays" role="group" aria-label="Days to expiry">
+      <button type="button" data-days="30">30 days</button><button type="button" data-days="45">45 days</button><button type="button" data-days="60">60 days</button><button type="button" data-days="90">90 days</button><button type="button" data-days="180">180 days</button>
+    </div>
+    <label class="f" style="margin-top:10px">Highest chance of being assigned you'll accept
+      <select id="putMaxA"><option value="10">10%</option><option value="15">15%</option><option value="20">20%</option><option value="25">25%</option><option value="30">30%</option><option value="40">40%</option></select></label>
+    <label class="chk" style="margin-top:8px"><input type="checkbox" id="putHideThin"> Skip thin markets (wide spread or low open interest)</label>
+    <div class="btnrow" style="margin-top:10px"><button type="button" class="primary" id="putScan">Scan the watch list</button></div>
+    <p class="hint" id="putNote">Uses Alpha Vantage end-of-day data: about 3 calls per symbol. Alpha Vantage allows 75 calls a minute, so long lists pause and show a countdown.</p>
+  </fieldset>
+</section>
+<main class="main" id="putMain" aria-live="off"></main>
+</div>
+
+<section class="panel" aria-label="Support and resistance" id="srPanel">
+  <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px">
+    <legend style="padding:0">Support and resistance</legend>
+    <label class="chk" style="min-height:0"><input type="checkbox" id="srOn"> Mark on charts</label>
+  </div>
+  <div id="srBody" style="margin-top:8px"></div>
+</section>
+
+<section class="panel" aria-label="More settings">
+  <div class="more">
+    <fieldset>
+      <legend>Position and model</legend>
+      <div class="grid2">
+        <label class="f">LEAP contracts<input type="number" id="contracts" inputmode="numeric" step="1" min="1"></label>
+        <label class="f">Risk-free rate (%)<input type="number" id="rate" inputmode="decimal" step="0.1"></label>
+      </div>
+      <p class="hint">The rate is the risk-free rate used in the option pricing model (what cash earns), not a borrowing cost. It has a small effect; 0 is the default.</p>
+      <label class="f" style="margin-top:10px">Volatility shift: <b id="shiftVal" style="color:var(--ink)"></b>
+        <input type="range" id="ivShift" min="-20" max="20" step="1"></label>
+      <p class="hint">Shifts every strike's implied volatility by this many points, for example -10 if you expect volatility to fall after earnings.</p>
+    </fieldset>
+
+    <fieldset id="payInputs">
+      <legend>Profit/loss view options</legend>
+      <label class="chk"><input type="checkbox" id="extraOn"> Add my own sale date</label>
+      <label class="f">Sell on: <b id="extraVal" style="color:var(--ink)"></b>
+        <input type="range" id="extraDay" min="1" max="300" step="1"></label>
+      <label class="chk" style="margin-top:8px"><input type="checkbox" id="lvlOn"> Mark my own price levels</label>
+      <label class="f">Levels ($, comma separated)<input type="text" id="levels" inputmode="decimal" autocomplete="off"></label>
+    </fieldset>
+    <fieldset id="highInputs">
+      <legend>Reference marker</legend>
+      <label class="f">52-week high ($)<input type="number" id="high" inputmode="decimal" step="0.01" min="0"></label>
+      <p class="hint">Fills in on Refresh from the past year of daily highs, adjusted for splits. You can type over it. It only draws a marker.</p>
+    </fieldset>
+  </div>
+  <div class="btnrow" style="margin-top:14px">
+    <button type="button" id="exportCsv" hidden>Export numbers (CSV)</button>
+    <button type="button" id="reset">Reset this tab to defaults</button>
+  </div>
+</section>
+</div>
+
+<footer>
+  Model estimates from Black-Scholes, using each strike's implied volatility from the end-of-day chain (plus any shift you set) and the risk-free rate above (default 0%). Real prices will differ, especially around earnings and in fast markets. End-of-day data only, never live quotes. Educational, not personal financial advice.
+</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+/* Hosted-page shim: gives the page the same window.claude calls the claude.ai artifact runtime provides. */
+(function(){
+const SB_URL="https://zngsukxhmfqacwzvzvnt.supabase.co",SB_KEY="sb_publishable_5d-c0IOZGajoHC93Cc5AQg_nzVuF8mP",LS="leap-lab-v2",TABLE="options_lab_user_data";
+const $=id=>document.getElementById(id);
+const get=k=>{try{return localStorage.getItem(k)}catch(e){return null}},set=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SB_URL,SB_KEY):null;
+let session=null;
+const ready=(async()=>{try{if(sb){const r=await sb.auth.getSession();session=(r&&r.data&&r.data.session)||null}}catch(e){}})();
+if(sb)sb.auth.onAuthStateChange((ev,s)=>{const was=!!session;session=s||null;if(ev==="SIGNED_IN"&&!was&&window.__shimBooted)location.reload();if(ev==="SIGNED_OUT"&&was&&window.__shimBooted)location.reload()});
+
+/* ----- Alpha Vantage over its web API, with the user's own key ----- */
+const mcp={async callTool(server,tool,input){
+  const key=(get(LS+"-avkey")||"").trim();
+  if(!key)throw {code:"needs_reauth",message:"No Alpha Vantage key"};
+  if(tool==="HISTORICAL_OPTIONS"&&input&&input.expiration&&dayCache.has(input.symbol+"|"+input.date)){
+    const f=dayCache.get(input.symbol+"|"+input.date).filter(x=>x.expiration===input.expiration);
+    return {payload:f.length?{message:"success",data:f}:{message:"No data for symbol "+input.symbol+" on date "+input.date+" with expiration "+input.expiration+".",data:[]}};
+  }
+  const p=new URLSearchParams();
+  Object.entries(input||{}).forEach(([k,v])=>{if(k==="return_full_data"||v==null)return;p.set(k,v)});
+  p.set("function",tool);p.set("apikey",key);
+  let r;try{r=await fetch("https://www.alphavantage.co/query?"+p.toString())}catch(e){throw {code:"server_unavailable",message:"Couldn't reach Alpha Vantage",retryable:true}}
+  if(!r.ok)throw {code:"tool_error",message:"Alpha Vantage answered HTTP "+r.status};
+  const text=await r.text();let payload=text;try{payload=JSON.parse(text)}catch(e){}
+  if(tool==="HISTORICAL_OPTIONS"&&payload&&Array.isArray(payload.data)&&payload.data.length&&payload.data[0].expiration){
+    // keep the whole day if Alpha Vantage sent every expiry, and serve each expiry from it; otherwise pass through
+    const dk=input.symbol+"|"+input.date;
+    if(!input.expiration)return {payload};
+    let rows=payload.data;
+    if(new Set(rows.map(x=>x.expiration)).size>1){dayCache.set(dk,rows)}
+    const f=rows.filter(x=>x.expiration===input.expiration);
+    payload=f.length?Object.assign({},payload,{data:f}):{message:"No data for symbol "+input.symbol+" on date "+input.date+" with expiration "+input.expiration+".",data:[]};
+  }
+  return {payload};
+}};
+const dayCache=new Map();
+/* ----- per-user saved data (Supabase, protected by row-level security: each person reads and writes only their own row) ----- */
+const COL={favorites:"favs",putWatch:"put_watch",costBasis:"cost_basis"};
+const db={collection:()=>({doc:name=>({
+  async get(){const {data,error}=await sb.from(TABLE).select(COL[name]).eq("user_id",session.user.id).maybeSingle();if(error)throw error;const v=data&&data[COL[name]];return {exists:v!=null,data:()=>v}},
+  async set(obj){const row={user_id:session.user.id,updated_at:new Date().toISOString()};row[COL[name]]=obj;const {error}=await sb.from(TABLE).upsert(row,{onConflict:"user_id"});if(error)throw error}
+})})};
+const user={id:async()=>session&&session.user.id};
+const dl={async save({filename,data}){const b=data instanceof Blob?data:new Blob([data],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}};
+window.claude={use:async n=>{await ready;return n==="mcp"?mcp:n==="downloads"?dl:(n==="db"&&sb&&session)?db:(n==="user"&&sb&&session)?user:null}};
+
+/* ----- account box ----- */
+const note=t=>{$("acMsg").textContent=t};
+function showAcct(){
+  $("acctIn").hidden=!session;$("acctOut").hidden=!!session;
+  if(session)$("acWho").textContent="Signed in as "+session.user.email+".";
+  const k=(get(LS+"-avkey")||"").trim();
+  $("avNote").textContent=k?"Key saved"+(session?" to this browser and your account.":" in this browser."):"Needed for live data. Premium keys include end-of-day options.";
+}
+async function keySync(){ // the account copy wins; a key only on this browser is pushed up
+  if(!sb||!session)return;
+  try{const {data}=await sb.from(TABLE).select("av_key").eq("user_id",session.user.id).maybeSingle();
+    const remote=data&&data.av_key,local=(get(LS+"-avkey")||"").trim();
+    if(remote&&remote!==local){set(LS+"-avkey",remote)}
+    else if(!remote&&local){await sb.from(TABLE).upsert({user_id:session.user.id,av_key:local,updated_at:new Date().toISOString()},{onConflict:"user_id"})}
+  }catch(e){}
+  showAcct();
+}
+$("avKey").value=get(LS+"-avkey")||"";
+$("avRate").value=get(LS+"-avrate")||"75";
+$("avRate").onchange=()=>{set(LS+"-avrate",$("avRate").value);location.reload()};
+$("avSave").onclick=async()=>{
+  const k=$("avKey").value.trim();set(LS+"-avkey",k);
+  if(sb&&session){try{await sb.from(TABLE).upsert({user_id:session.user.id,av_key:k||null,updated_at:new Date().toISOString()},{onConflict:"user_id"})}catch(e){note("Saved in this browser, but couldn't save to your account.");}}
+  showAcct();
+};
+const creds=()=>({email:$("acEmail").value.trim(),password:$("acPass").value});
+$("acIn").onclick=async()=>{if(!sb){note("Sign-in isn't available right now (couldn't load the account service).");return}
+  const {error}=await sb.auth.signInWithPassword(creds());if(error)note(error.message)};
+$("acUp").onclick=async()=>{if(!sb){note("Sign-in isn't available right now (couldn't load the account service).");return}
+  const c=creds();if(!c.email||c.password.length<6){note("Enter an email and a password of at least 6 characters.");return}
+  const {data,error}=await sb.auth.signUp({email:c.email,password:c.password,options:{emailRedirectTo:location.origin+location.pathname}});
+  if(error){note(error.message);return}
+  if(!data.session)note("Almost done: check your email and tap the confirmation link, then you'll be signed in.")};
+$("acOut").onclick=async()=>{await sb.auth.signOut();try{Object.keys(localStorage).filter(k=>k.indexOf(LS)===0).forEach(k=>localStorage.removeItem(k))}catch(e){}location.reload()};
+ready.then(()=>{showAcct();keySync();window.__shimBooted=true});
+showAcct();
+})();
+</script>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const SERVER="Alpha Vantage MCP Server";
+const DAY=86400000;
+
+/* ---------- math ---------- */
+function erf(x){const s=Math.sign(x);x=Math.abs(x);const t=1/(1+0.3275911*x);
+  const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);return s*y}
+const N=x=>0.5*(1+erf(x/Math.SQRT2));
+function bs(S,K,T,s,r){
+  if(T<=1e-9)return Math.max(S-K,0);
+  const d1=(Math.log(S/K)+(r+s*s/2)*T)/(s*Math.sqrt(T));
+  return S*N(d1)-K*Math.exp(-r*T)*N(d1-s*Math.sqrt(T));
+}
+
+function bsDelta(S0,K,T,s,r){
+  if(T<=1e-9)return S0>K?1:0;
+  return N((Math.log(S0/K)+(r+s*s/2)*T)/(s*Math.sqrt(T)));
+}
+
+/* ---------- dates ---------- */
+const pd=s=>{const[a,b,c]=s.split("-").map(Number);return Date.UTC(a,b-1,c)};
+const iso=t=>new Date(t).toISOString().slice(0,10);
+const addDays=(s,d)=>iso(pd(s)+d*DAY);
+const diffDays=(a,b)=>Math.round((pd(b)-pd(a))/DAY);
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const fdate=s=>{const d=new Date(pd(s));return MON[d.getUTCMonth()]+" "+d.getUTCDate()+", "+d.getUTCFullYear()};
+const fmon=s=>{const d=new Date(pd(s));return MON[d.getUTCMonth()]+" "+String(d.getUTCFullYear()).slice(2)};
+function thirdFriday(y,m){const first=new Date(Date.UTC(y,m,1)).getUTCDay();const day=1+((5-first+7)%7)+14;return iso(Date.UTC(y,m,day))}
+function addMonthsTo(s,n){const d=new Date(pd(s));return {y:d.getUTCFullYear()+Math.floor((d.getUTCMonth()+n)/12),m:((d.getUTCMonth()+n)%12+12)%12}}
+function targetExpiry(s,n,off){const o=addMonthsTo(s,n+(off||0));return thirdFriday(o.y,o.m)}
+
+/* ---------- formatting ---------- */
+const fm=v=>"$"+Math.abs(v).toLocaleString("en-US",{maximumFractionDigits:0});
+const fs=v=>(v<-0.5?"−":v>0.5?"+":"")+fm(v);
+const fp=v=>(v<-0.05?"−":v>0.05?"+":"")+Math.abs(v).toFixed(0)+"%";
+const fn=(v,d)=>Number(v).toFixed(d==null?2:d);
+const cls=v=>v>0.5?"gain":v<-0.5?"loss":"";
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---------- state ---------- */
+const KEY="leap-lab-v2";
+const DEF=()=>({
+  ticker:"CRWD",spot:227.37,dataDate:"2026-10-20",high:286.99,
+  months:12,expiry:"2027-09-17",expVerified:"seed",
+  contracts:1,rate:0,ivShift:0,view:"payoff",
+  strikes:[
+    {on:true,strike:230,mid:52.33,iv:59.05,src:"seed",atm:true,delta:0.627,bid:48,ask:56.65,oi:195},
+    {on:false,strike:200,mid:null,iv:null,src:"",atm:false},
+    {on:false,strike:260,mid:null,iv:null,src:"",atm:false}],
+  exits:[260,200,null],levels:"200, 248, 260, 277",lvlOn:false,extraOn:false,extraDay:180,
+  tab:"leap",basis:{},earn:{CRWD:"2026-12-01"},earnSrc:{CRWD:"auto"},srOn:true,sr:{CRWD:{"asOf": "2026-10-20", "levels": [{"p": 286.99, "side": "R", "label": "Swing high Oct 6 \u00b7 52-week high"}, {"p": 256.07, "side": "R", "label": "Swing high Oct 14"}, {"p": 233.49, "side": "R", "label": "50-day average \u00b7 Swing high Aug 31"}, {"p": 219.43, "side": "S", "label": "Turning points Oct 20, Jul 15 (2 touches)"}, {"p": 210.28, "side": "S", "label": "100-day average \u00b7 Swing high Jul 6"}, {"p": 196.41, "side": "S", "label": "Swing high Jun 1"}, {"p": 181.12, "side": "S", "label": "Swing lows Aug 26, Jul 13 (2 touches)"}]}},
+  cc:{shares:100,days:30,expiry:"2026-11-20",expVerified:"seed",pmcc:false,mode:"option",
+    strikes:[
+      {on:true,strike:230,mid:13.43,iv:54.17,delta:0.511,bid:13.15,ask:13.70,oi:1475,vol:115,src:"seed"},
+      {on:false,strike:240,mid:9.32,iv:53.19,delta:0.401,bid:9.10,ask:9.55,oi:1576,vol:192,src:"seed"},
+      {on:false,strike:250,mid:6.33,iv:53.19,delta:0.304,bid:6.20,ask:6.45,oi:2212,vol:427,src:"seed"}]}
+});
+let S=DEF();
+try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);if(o&&o.strikes&&o.strikes.length===3)S=Object.assign(DEF(),o)}}catch(e){}
+try{const tk=localStorage.getItem(KEY+"-ticker");if(tk)S.ticker=tk}catch(e){}
+S.put=Object.assign({tickers:[S.ticker||"CRWD"],days:30,maxAssign:20,hideThin:false,sort:{col:"ann",dir:-1},open:null,picks:{}},S.put||{});try{const wl=JSON.parse(localStorage.getItem(KEY+"-watch")||"null");if(Array.isArray(wl)&&wl.length)S.put.tickers=wl}catch(e){}
+S.favs=S.favs&&!Array.isArray(S.favs)?S.favs:{leap:[S.ticker||"CRWD"],cc:[S.ticker||"CRWD"]};try{const fv=JSON.parse(localStorage.getItem(KEY+"-favs")||"null");if(fv&&Array.isArray(fv.leap)&&Array.isArray(fv.cc))S.favs=fv}catch(e){}
+S.cc.view=S.cc.view||"pick";S.cc.maxAssign=S.cc.maxAssign||20;S.cc.strikes.forEach((r,i)=>r.on=i===0);
+let chain=[];   // listed calls for the expiry in use, from the last refresh
+try{const c=JSON.parse(localStorage.getItem(KEY+"-chain")||"null");if(c&&S.loaded&&c.ticker===S.ticker&&c.expiry===S.expiry)chain=c.rows||[]}catch(e){}
+function saveChain(){try{localStorage.setItem(KEY+"-chain",JSON.stringify({ticker:S.ticker,expiry:S.expiry,rows:chain}))}catch(e){}}
+function roundStrike(x){
+  if(chain.length){let b=chain[0];chain.forEach(c=>{if(Math.abs(c.k-x)<Math.abs(b.k-x))b=c});return b.k}
+  const st=x<25?1:x<100?2.5:x<300?5:10;return Math.round(x/st)*st;
+}
+// Strikes, exits and levels that fit the current price (used for a new symbol and for Reset)
+function fitDefaults(){
+  const p=S.spot;
+  Object.assign(S.strikes[0],{on:true,atm:true,strike:roundStrike(p)});
+  Object.assign(S.strikes[1],{on:false,strike:roundStrike(p*0.85),mid:null,iv:null,src:""});
+  Object.assign(S.strikes[2],{on:false,strike:roundStrike(p*1.15),mid:null,iv:null,src:""});
+  S.exits=[Math.round(p*1.15),Math.round(p*0.9),null];
+  S.levels="";S.lvlOn=false;
+  autofill(0);
+}
+let stamp=null;
+function save(){try{if(!S.ticker)return;localStorage.setItem(KEY,JSON.stringify(S));if(S.ticker)localStorage.setItem(KEY+"-ticker",S.ticker)}catch(e){}}
+
+/* ---------- inputs ---------- */
+function buildStrikeRows(){
+  $("strikes").innerHTML=S.strikes.map((r,i)=>`
+   <div class="strike" data-i="${i}">
+     <div class="tick"><input type="checkbox" id="on${i}" aria-label="Show strike ${i+1}"></div>
+     <label class="f">Strike $<input type="number" id="k${i}" inputmode="decimal" step="0.5" min="1"></label>
+     <label class="f">Mid $<input type="number" id="m${i}" inputmode="decimal" step="0.01" min="0"></label>
+     <label class="f">IV %<input type="number" id="v${i}" inputmode="decimal" step="0.1" min="1"></label>
+     ${i===0?`<div class="meta" style="display:flex;align-items:center;gap:8px;font-family:var(--font-ui)"><input type="checkbox" id="atm0"><label for="atm0">Keep strike 1 at the money when refreshing</label></div>`:""}
+     <div class="meta" id="meta${i}"></div>
+   </div>`).join("");
+}
+function totalDays(){return Math.max(1,diffDays(S.dataDate,S.expiry))}
+function syncInputs(){
+  $("ticker").value=S.ticker;$("spot").value=S.spot;$("dataDate").value=S.dataDate;$("high").value=S.high;
+  $("months").value=String(S.months);$("expiry").value=S.expiry;
+  $("contracts").value=S.contracts;$("rate").value=S.rate;$("ivShift").value=S.ivShift;
+  S.strikes.forEach((r,i)=>{
+    $("on"+i).checked=r.on;$("k"+i).value=r.strike??"";$("m"+i).value=r.mid==null?"":r.mid;$("v"+i).value=r.iv==null?"":r.iv;
+  });
+  $("atm0").checked=!!S.strikes[0].atm;
+  S.exits.forEach((x,i)=>$("x"+i).value=x==null?"":x);
+  $("srOn").checked=S.srOn!==false;$("extraOn").checked=S.extraOn;$("lvlOn").checked=S.lvlOn;$("levels").value=S.levels;
+  derived();
+}
+function derived(){
+  const t=totalDays();
+  $("months").querySelectorAll("option").forEach(o=>{const base=o.dataset.base||(o.dataset.base=o.textContent);o.textContent=missFor("leap",+o.value)?"\u274C "+base+" (no chain)":base});
+  $("shiftVal").textContent=(S.ivShift>0?"+":"")+S.ivShift+" points";
+  const ex=$("extraDay");ex.max=Math.max(2,t-1);if(+ex.value!==S.extraDay||ex.value==="")ex.value=Math.min(S.extraDay,t-1);
+  $("extraVal").textContent="day "+Math.min(S.extraDay,t-1)+" ("+fdate(addDays(S.dataDate,Math.min(S.extraDay,t-1)))+")";
+  const v={seed:"Listed in the Oct 20 end-of-day chain. Press Refresh to reload it.",chain:"Listed in the latest chain.",none:"Not checked against the chain yet. Press Refresh to look for the nearest listed expiry."}[S.expVerified]||"";
+  $("expNote").textContent="Expiry in use: "+fdate(S.expiry)+" ("+fn(t/30.44,1)+" months, "+t+" days). "+v+(S.months===12&&S.expVerified!=="none"&&t<350?" The 1-year date is not always listed; this is the closest listed expiry.":"");
+  S.strikes.forEach((r,i)=>{
+    let m="";
+    const dl=leapDelta(r);
+    const dtxt=dl==null?"":"Delta "+fn(dl,2)+((r.src==="chain"||r.src==="seed")&&r.delta!=null&&dl===r.delta?"":" (model)")+" · ";
+    if((r.src==="chain"||r.src==="seed")&&r.bid!=null)m=dtxt+`bid ${fn(r.bid)} / ask ${fn(r.ask)} · spread ${fn((r.ask-r.bid)/Math.max(r.mid,.01)*100,0)}% · open interest ${r.oi}`+(r.src==="seed"?" · Oct 20 data":"");
+    else if(r.src.startsWith("model"))m=dtxt+"Model estimate: "+r.src.replace("model","").replace(/^,? ?/,"")+" Not a market quote.";
+    else if(r.src==="typed")m=dtxt+"Entered by hand";
+    else m=dtxt.replace(/ · $/,"");
+    $("meta"+i).textContent=m;
+  });
+  const cc=S.tab==="cc",pt=S.tab==="put",lp=!cc&&!pt;
+  $("leapTab").hidden=!lp;$("ccTab").hidden=!cc;$("putTab").hidden=!pt;
+  $("tabLeap").setAttribute("aria-selected",lp);$("tabCC").setAttribute("aria-selected",cc);$("tabPut").setAttribute("aria-selected",pt);
+  $("stockGrid").hidden=pt;$("favRow").hidden=pt;favRender();$("stockHint").hidden=pt;$("srPanel").hidden=pt;
+  $("timeInputs").hidden=!lp||S.view!=="time";$("payInputs").hidden=!lp||S.view!=="payoff";$("highInputs").hidden=!lp;
+  putDerived();
+  ccDerived();
+  $("vPayoff").setAttribute("aria-pressed",S.view==="payoff");$("vTime").setAttribute("aria-pressed",S.view==="time");
+}
+function leapDelta(r){
+  if(!(r.strike>0))return null;
+  if((r.src==="chain"||r.src==="seed")&&r.delta!=null&&!S.ivShift&&quoteSpotOk())return r.delta;
+  if(!(r.iv>0))return null;
+  return bsDelta(S.spot,r.strike,totalDays()/365,(r.iv+S.ivShift)/100,S.rate/100);
+}
+function quoteSpotOk(){return Math.abs(S.spot-(S.loaded?S.loaded.spot:227.37))<0.005}  // chain deltas only hold at the price they were quoted at
+function markMiss(kind,v,ok){
+  const key=S.ticker+"|"+S.dataDate;
+  if(!S.miss||S.miss.key!==key)S.miss={key,cc:[],leap:[]};
+  const a=S.miss[kind];const i=a.indexOf(v);
+  if(ok){if(i>=0)a.splice(i,1)}else if(i<0)a.push(v);
+}
+function missFor(kind,v){return !!(S.miss&&S.miss.key===S.ticker+"|"+S.dataDate&&S.miss[kind].includes(v))}
+function dataTicker(){return S.loaded?S.loaded.ticker:"CRWD"}
+function staleBanner(){const d=dataTicker();if(S.ticker&&S.ticker!==d)return `<div class="banner"><b>These numbers are still for ${esc(d)}.</b> Press Refresh to load ${esc(S.ticker)}.</div>`;
+  const L=S.latest;if(L&&L.ticker===S.ticker&&L.date>S.dataDate&&S.loaded&&S.loaded.dataDate===S.dataDate)return `<div class="banner"><b>⚠ Options are from ${fdate(S.dataDate)}, one session behind.</b> ${esc(S.ticker)} closed at $${fn(L.close)} on ${fdate(L.date)} (${fp((L.close/S.spot-1)*100)} vs the $${fn(S.spot)} used here). Alpha Vantage hasn't published that day's options yet; refresh later for the newer chain.</div>`;
+  return ""}
+function num(v){const n=parseFloat(v);return isFinite(n)?n:null}
+function autofill(i){
+  const r=S.strikes[i];if(r.strike==null)return;
+  const c=chain.find(c=>Math.abs(c.k-r.strike)<0.001);
+  if(c){Object.assign(r,{mid:c.mark,iv:+(c.iv*100).toFixed(2),bid:c.bid,ask:c.ask,oi:c.oi,delta:c.delta,src:"chain"});return}
+  let near=null;for(const c2 of chain)if(!near||Math.abs(c2.k-r.strike)<Math.abs(near.k-r.strike))near=c2;
+  let iv=near?near.iv*100:(r.iv||(S.strikes.find(s=>s.iv)||{}).iv||60);
+  iv=+(+iv).toFixed(2);
+  const t=totalDays()/365;
+  r.iv=iv;
+  r.mid=+bs(S.spot,r.strike,t,iv/100,S.rate/100).toFixed(2);
+  r.src=near?"model, volatility taken from the nearest listed strike ($"+near.k+").":"model, using a volatility you entered.";
+  r.bid=r.ask=r.oi=r.delta=null;
+}
+function onInput(e){
+  const id=e.target.id;
+  if(/^cc/.test(id)){onCC(e);return}
+  if(/^put/.test(id))return;   // the put tab has its own handlers
+  if(id==="srOn"){S.srOn=$("srOn").checked;save();schedule();return}
+  if(id==="ticker"&&e.type==="change"&&S.loaded&&$("ticker").value.trim().toUpperCase()!==S.loaded.ticker)chain=[];
+  if(id==="ticker"&&e.type==="change"){const t=($("ticker").value||"").trim().toUpperCase();if(!S.loaded||t!==S.loaded.ticker)ccChain=[];S.ticker=t;ccSync()}
+  if(id==="ticker"&&e.type==="change"&&S.ticker&&S.ticker!==dataTicker()){derived();save();schedule();refresh();return}
+  if(id==="ticker"&&e.type==="change")setStatus("Symbol changed to "+($("ticker").value||"").trim().toUpperCase()+". Press Refresh to load its price and option chain; until then the numbers below are for the previous symbol.");
+  S.ticker=($("ticker").value||"").trim().toUpperCase();
+  S.spot=num($("spot").value)??S.spot;S.dataDate=$("dataDate").value||S.dataDate;S.high=num($("high").value)??S.high;
+  S.contracts=Math.max(1,Math.round(num($("contracts").value)||1));S.rate=num($("rate").value)??S.rate;S.ivShift=num($("ivShift").value)||0;
+  S.exits=[0,1,2].map(i=>num($("x"+i).value));
+  S.extraOn=$("extraOn").checked;S.extraDay=Math.round(num($("extraDay").value)||S.extraDay);
+  S.lvlOn=$("lvlOn").checked;S.levels=$("levels").value;
+  if(id==="months"){
+    S.months=+$("months").value;S.expiry=targetExpiry(S.dataDate,S.months);S.expVerified="none";
+    chain=[];$("expiry").value=S.expiry;
+    S.strikes.forEach((r,i)=>{if(r.on&&r.src==="chain"){r.src="model";}});
+    S.strikes.forEach((r,i)=>{if(r.on)autofill(i)});syncInputs();leapRefetch();
+  }else if(id==="expiry"){
+    if($("expiry").value){S.expiry=$("expiry").value;S.expVerified="none";chain=[];
+      S.months=Math.max(1,Math.round(totalDays()/30.44));
+      S.strikes.forEach((r,i)=>{if(r.on)autofill(i)});syncInputs();if(e.type==="change"){$("expiry").dataset.manual="1";leapRefetch()}}
+  }else if(id==="dataDate"){derived()}
+  if(id==="spot"||id==="dataDate"||id==="rate"){
+    S.strikes.forEach((r,i)=>{if(r.src&&r.src.startsWith("model"))autofill(i)});
+    S.cc.strikes.forEach((r,i)=>{if(r.src&&r.src.startsWith("model"))ccFill(i)});
+    S.strikes.forEach((r,i)=>{$("m"+i).value=r.mid??"";$("v"+i).value=r.iv??""});
+    S.cc.strikes.forEach((r,i)=>{$("ccM"+i).value=r.mid??"";$("ccV"+i).value=r.iv??""});
+  }
+  S.strikes.forEach((r,i)=>{
+    r.on=$("on"+i).checked;
+    if(id==="k"+i){const k=num($("k"+i).value);if(k){r.strike=k;autofill(i);$("m"+i).value=r.mid;$("v"+i).value=r.iv}}
+    else if(id==="on"+i&&r.on&&r.mid==null){autofill(i);$("m"+i).value=r.mid;$("v"+i).value=r.iv}
+    else{
+      if(id==="m"+i){r.mid=num($("m"+i).value);r.src="typed";r.bid=null}
+      if(id==="v"+i){r.iv=num($("v"+i).value);r.src="typed";r.bid=null}
+    }
+  });
+  if(id==="atm0")S.strikes[0].atm=$("atm0").checked;
+  derived();save();schedule();
+}
+let raf=0;function schedule(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;render()})}
+
+/* ---------- chart helpers ---------- */
+function niceTicks(lo,hi,n){
+  const span=hi-lo;if(span<=0)return [lo];
+  const s0=span/n,mag=Math.pow(10,Math.floor(Math.log10(s0))),nm=s0/mag;
+  const step=(nm<1.5?1:nm<3.5?2:nm<7.5?5:10)*mag,out=[];
+  for(let v=Math.ceil(lo/step-1e-9)*step;v<=hi+1e-9;v+=step)out.push(Math.round(v/step)*step);
+  return out;
+}
+function spreadLabels(items,minGap){ // items {y}; returns adjusted y so labels do not overlap
+  const s=items.map((o,i)=>({o,i})).sort((a,b)=>a.o.y-b.o.y);
+  for(let k=1;k<s.length;k++)if(s[k].o.y-s[k-1].o.y<minGap)s[k].o.y=s[k-1].o.y+minGap;
+  return items;
+}
+function activeStrikes(){return S.strikes.map((r,i)=>({r,i})).filter(o=>o.r.on&&o.r.strike>0&&o.r.mid>0&&o.r.iv>0)}
+const colK=i=>`var(--k${i})`;
+
+/* ---------- payoff view ---------- */
+function horizons(){
+  const t=totalDays(),half=Math.floor(t/2);
+  let list=[{d:30,label:"In 1 month"},{d:91,label:"In 3 months"},{d:half,label:"Midpoint"},{d:t,label:"At expiry"}];
+  if(S.extraOn){const d=Math.min(S.extraDay,t-1);list.push({d,label:"My date",extra:true})}
+  const seen=new Map();
+  list.filter(h=>h.d<=t&&h.d>=0).forEach(h=>{const old=seen.get(h.d);if(!old||h.extra||h.label==="At expiry")seen.set(h.d,h)});
+  list=[...seen.values()].sort((a,b)=>a.d-b.d);
+  const base=["--h0","--h1","--h2","--h3"];let bi=0;
+  list.forEach(h=>{h.color=h.extra?"var(--hx)":`var(${base[Math.min(bi++,3)]})`;h.dateStr=fdate(addDays(S.dataDate,h.d));
+    h.name=h.label+" ("+fmon(addDays(S.dataDate,h.d))+")"});
+  return list;
+}
+const plAt=(r,x,d,t)=>(bs(x,r.strike,(t-d)/365,(r.iv+S.ivShift)/100,S.rate/100)-r.mid)*100*S.contracts;
+const retAt=(r,x,d,t)=>(bs(x,r.strike,(t-d)/365,(r.iv+S.ivShift)/100,S.rate/100)/r.mid-1)*100;
+
+function payoffCharts(act){
+  const t=totalDays(),hz=horizons(),n=S.contracts,spot=S.spot;
+  const lows=act.map(o=>o.r.strike);
+  const xmin=Math.max(1,Math.min(0.6*spot,0.85*Math.min(...lows))),xmax=Math.max(1.75*spot,(S.high||0)*1.1);
+  let ylo=0,yhi=0;
+  act.forEach(({r})=>hz.forEach(h=>[xmin,xmax].forEach(x=>{const v=plAt(r,x,h.d,t);ylo=Math.min(ylo,v);yhi=Math.max(yhi,v)})));
+  const maxCost=Math.max(...act.map(o=>o.r.mid*100*n));
+  ylo=Math.min(ylo,-maxCost)*1.2;yhi=yhi*1.06;
+  const levels=S.lvlOn?S.levels.split(/[ ,]+/).map(parseFloat).filter(v=>isFinite(v)&&v>xmin&&v<xmax):[];
+  return act.map(({r,i},ci)=>{
+    const W=cw(),H=W<520?Math.round(W*1.1):410,m={l:W<520?54:66,r:16,t:40,b:44},iw=W-m.l-m.r,ih=H-m.t-m.b;
+    const sx=x=>m.l+(x-xmin)/(xmax-xmin)*iw,sy=y=>m.t+(yhi-y)/(yhi-ylo)*ih;
+    const cost=r.mid*100*n,K=r.strike;
+    let g="";
+    niceTicks(ylo,yhi,6).forEach(v=>{g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(v)}" y2="${sy(v)}" stroke="var(--grid)"/><text x="${m.l-8}" y="${sy(v)+4}" text-anchor="end">${v<0?"−":v>0?"+":""}$${Math.abs(v).toLocaleString("en-US")}</text>`});
+    niceTicks(xmin,xmax,W<520?4:8).forEach(v=>{g+=`<line y1="${m.t}" y2="${H-m.b}" x1="${sx(v)}" x2="${sx(v)}" stroke="var(--grid)"/><text x="${sx(v)}" y="${H-m.b+16}" text-anchor="middle">$${v}</text>`});
+    g+=`<rect x="${m.l}" y="${sy(0)}" width="${iw}" height="${sy(-cost)-sy(0)}" fill="var(--shade)"/>`;
+    g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(-cost)}" y2="${sy(-cost)}" stroke="var(--loss)" stroke-dasharray="2 4"/>`;
+    g+=`<text x="${m.l+6}" y="${sy(-cost)+14}" style="fill:var(--loss)">Max loss ${fm(cost)} (the premium)</text>`;
+    g+=srSvg(sx,xmin,xmax,m.t,H-m.b);
+    // level markers
+    levels.forEach(v=>{g+=`<line x1="${sx(v)}" x2="${sx(v)}" y1="${m.t}" y2="${H-m.b}" stroke="var(--lvl)" stroke-dasharray="1 5"/><text x="${sx(v)+3}" y="${H-m.b-6}" style="fill:var(--lvl)">$${v}</text>`});
+    // top markers
+    const marks=[{x:spot,t:"Today $"+fn(spot,0)},{x:K,t:"Strike $"+K}];
+    if(S.high)marks.push({x:S.high,t:"52-wk high $"+fn(S.high,0)});
+    marks.sort((a,b)=>a.x-b.x);let lastPx=-1e9,row=0;
+    marks.forEach(mk=>{if(mk.x<xmin||mk.x>xmax)return;const px=sx(mk.x);row=(px-lastPx<92)?(row+1)%3:0;lastPx=px;
+      const ty=m.t-6-row*0+(-0);const yy=14+row*11;
+      g+=`<line x1="${px}" x2="${px}" y1="${m.t-4}" y2="${H-m.b}" stroke="var(--stock)" stroke-dasharray="3 3"/><text x="${px}" y="${yy}" text-anchor="middle" class="lab">${esc(mk.t)}</text>`});
+    g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(0)}" y2="${sy(0)}" stroke="var(--zero)" stroke-width="2"/>`;
+    // curves
+    const pts=[];const steps=240;
+    hz.forEach(h=>{
+      let d="";let be=null,prev=null;
+      for(let s=0;s<=steps;s++){const x=xmin+(xmax-xmin)*s/steps,y=plAt(r,x,h.d,t);
+        d+=(s?"L":"M")+sx(x).toFixed(1)+","+sy(y).toFixed(1);
+        if(prev&&prev.y<0&&y>=0&&be==null)be=prev.x+(x-prev.x)*(-prev.y)/(y-prev.y);prev={x,y}}
+      if(h.d===t)be=K+r.mid;
+      const w=h.extra?3:h.label==="Midpoint"?3:h.d===t?2.4:1.8;
+      g+=`<path d="${d}" fill="none" stroke="${h.color}" stroke-width="${w}" ${h.d===t?'stroke-dasharray="7 4"':""} stroke-linejoin="round"/>`;
+      if(be&&be>=xmin&&be<=xmax)g+=`<circle cx="${sx(be)}" cy="${sy(0)}" r="5" fill="${h.color}" stroke="var(--panel)" stroke-width="1.5"/>`;
+      h.be=h.be||{};h.be[i]=be;
+    });
+    g+=`<text x="${m.l+iw/2}" y="${H-4}" text-anchor="middle">${esc(S.ticker)} price on the day you sell ($)</text>`;
+    g+=`<g class="hov" style="display:none"><line y1="${m.t}" y2="${H-m.b}" stroke="var(--ink)" stroke-width="1"/>${hz.map(h=>`<circle r="4.5" fill="${h.color}" stroke="var(--panel)" stroke-width="1.5"/>`).join("")}</g>`;
+    const bes=hz.map(h=>h.be&&h.be[i]?`${h.label} $${fn(h.be[i],0)}`:null).filter(Boolean).join(" · ");
+    const legend=hz.map(h=>`<span style="color:${h.color}"><i ${h.d===t?'style="border-top-style:dashed"':""}></i><span style="color:var(--muted)">${esc(h.name)}</span></span>`).join("")+srLegend();
+    const html=`<figure class="chart" data-kind="pay" data-ci="${ci}">
+      <figcaption>${esc(S.ticker)} $${K} call, ${esc(fmon(S.expiry))} expiry · cost ${fm(cost)} (${n} contract${n>1?"s":""})</figcaption>
+      <div class="capsub">Break-even price (dots): ${esc(bes)}</div>
+      <div class="legend">${legend}</div>
+      <svg class="c" viewBox="0 0 ${W} ${H}" role="img" aria-label="Profit and loss for the $${K} call by stock price and sale date">${g}</svg>
+      <div class="readout"></div></figure>`;
+    return {html,ctx:{r,i,sx,xmin,xmax,m,iw,sy,hz,t,n,spot}};
+  });
+}
+function srNear(x){const L=srList();if(!S.srOn||!L.length)return "";
+  const below=L.filter(l=>l.p<=x).sort((a,b)=>b.p-a.p)[0],above=L.filter(l=>l.p>x).sort((a,b)=>a.p-b.p)[0];
+  return `<div class="hint" style="margin:4px 0 0">${below?"Nearest support below: $"+fn(below.p,0):"No support level below"} · ${above?"nearest resistance above: $"+fn(above.p,0):"no resistance level above"}</div>`}
+function payReadout(ctx,x,el,svg){
+  const {r,hz,t,n,sx,sy,m}=ctx;
+  const rows=hz.map(h=>{const p=plAt(r,x,h.d,t),rt=retAt(r,x,h.d,t);
+    return `<tr><td>${esc(h.name)}</td><td class="${cls(p)}">${fs(p)}</td><td class="${cls(p)}">${fp(rt)}</td></tr>`}).join("");
+  el.innerHTML=`<table><caption>If ${esc(S.ticker)} is $${fn(x,0)} (${fp((x/ctx.spot-1)*100)} vs the starting price) on the day you sell</caption><thead><tr><th>Sell date</th><th>Profit/loss</th><th>Return</th></tr></thead><tbody>${rows}</tbody></table>`+srNear(x);
+  const hov=svg.querySelector(".hov");hov.style.display="";
+  const line=hov.querySelector("line");line.setAttribute("x1",sx(x));line.setAttribute("x2",sx(x));
+  hov.querySelectorAll("circle").forEach((c,k)=>{c.setAttribute("cx",sx(x));c.setAttribute("cy",sy(plAt(r,x,hz[k].d,t)))});
+}
+
+/* ---------- return-over-time view ---------- */
+function timeCharts(act){
+  const t=totalDays(),half=Math.floor(t/2),n=S.contracts,spot=S.spot;
+  const exits=S.exits.filter(x=>x>0);
+  // one y-scale for every panel, in 25% steps, so a strike change shows as the lines moving rather than the axis rescaling
+  let LO=0,HI=0;
+  exits.forEach(X=>{LO=Math.min(LO,(X/spot-1)*100);HI=Math.max(HI,(X/spot-1)*100);act.forEach(({r})=>{for(let d=0;d<=t;d+=Math.max(1,Math.floor(t/120))){const v=retAt(r,X,d,t);LO=Math.min(LO,v);HI=Math.max(HI,v)}const v=retAt(r,X,t,t);LO=Math.min(LO,v);HI=Math.max(HI,v)})});
+  LO=Math.floor((LO-5)/25)*25;HI=Math.ceil((HI+5)/25)*25;
+  return exits.map((X,ci)=>{
+    const W=cw(),H=W<520?Math.round(W*1.1):420,m={l:W<520?48:62,r:W<520?56:70,t:36,b:44},iw=W-m.l-m.r,ih=H-m.t-m.b;
+    const stock=(X/spot-1)*100;
+    const series=act.map(({r})=>{const ys=[];for(let d=0;d<=t;d++)ys.push(retAt(r,X,d,t));return ys});
+    const lo=LO,hi=HI;
+    const sx=d=>m.l+d/t*iw,sy=v=>m.t+(hi-v)/(hi-lo)*ih;
+    let g="";
+    niceTicks(lo,hi,6).forEach(v=>{g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(v)}" y2="${sy(v)}" stroke="var(--grid)"/><text x="${m.l-8}" y="${sy(v)+4}" text-anchor="end">${v<0?"−":v>0?"+":""}${Math.abs(v).toFixed(0)}%</text>`});
+    const stepM=Math.max(1,Math.ceil(t/30.44/(W<520?4:6)));
+    for(let k=0;k*stepM*30.44<=t;k++){const d=Math.round(k*stepM*30.44);g+=`<line y1="${m.t}" y2="${H-m.b}" x1="${sx(d)}" x2="${sx(d)}" stroke="var(--grid)"/><text x="${sx(d)}" y="${H-m.b+16}" text-anchor="middle">${fmon(addDays(S.dataDate,d))}</text>`}
+    g+=`<line x1="${sx(half)}" x2="${sx(half)}" y1="${m.t-4}" y2="${H-m.b}" stroke="var(--stock)" stroke-dasharray="5 4"/><text x="${sx(half)}" y="${m.t-14}" text-anchor="middle" class="lab">Midpoint ${fdate(addDays(S.dataDate,half))}</text>`;
+    g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(stock)}" y2="${sy(stock)}" stroke="var(--stock)" stroke-width="1.6" stroke-dasharray="6 4"/>`;
+    g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(0)}" y2="${sy(0)}" stroke="var(--zero)" stroke-width="2"/>`;
+    const ends=[];
+    act.forEach(({r,i},k)=>{
+      const ys=series[k];let d="";ys.forEach((v,j)=>{d+=(j?"L":"M")+sx(j).toFixed(1)+","+sy(v).toFixed(1)});
+      g+=`<path d="${d}" fill="none" stroke="${colK(i)}" stroke-width="2.6" stroke-linejoin="round"/>`;
+      [half,t].forEach(j=>{g+=`<circle cx="${sx(j)}" cy="${sy(ys[j])}" r="4.5" fill="${colK(i)}" stroke="var(--panel)" stroke-width="1.5"/>`});
+      ends.push({y:sy(ys[t]),v:ys[t],i});
+    });
+    const mids=act.map(({i},k)=>({y:sy(series[k][half]),v:series[k][half],i}));
+    spreadLabels(mids,13).forEach(o=>{g+=`<text x="${sx(half)-8}" y="${o.y+4}" text-anchor="end" style="fill:${colK(o.i)};font-weight:600;paint-order:stroke;stroke:var(--panel);stroke-width:3px">${fp(o.v)}</text>`});
+    ends.push({y:sy(stock),v:stock,i:-1});
+    spreadLabels(ends,13).forEach(o=>{g+=`<text x="${W-m.r+8}" y="${o.y+4}" style="fill:${o.i<0?"var(--stock)":colK(o.i)};font-weight:600">${fp(o.v)}</text>`});
+    // crossovers
+    const notes=[];
+    for(let a=0;a<act.length;a++)for(let b=a+1;b<act.length;b++){
+      for(let d=1;d<=t;d++){const p=series[a][d-1]-series[b][d-1],q=series[a][d]-series[b][d];
+        if(p*q<0){g+=`<text x="${sx(d)}" y="${sy(series[a][d])+4}" text-anchor="middle" style="fill:var(--ink);font-weight:700">×</text>`;
+          notes.push(`$${act[a].r.strike} and $${act[b].r.strike} cross ${fmon(addDays(S.dataDate,d))}`);break}}}
+    g+=`<text x="${m.l+iw/2}" y="${H-4}" text-anchor="middle">Date you sell</text>`;
+    g+=`<g class="hov" style="display:none"><line y1="${m.t}" y2="${H-m.b}" stroke="var(--ink)"/>${act.map(o=>`<circle r="4.5" fill="${colK(o.i)}" stroke="var(--panel)" stroke-width="1.5"/>`).join("")}</g>`;
+    const legend=act.map(({r,i})=>`<span style="color:${colK(i)}"><i></i><span style="color:var(--muted)">$${r.strike} call (cost ${fm(r.mid*100*n)})</span></span>`).join("")+`<span style="color:var(--stock)"><i style="border-top-style:dashed"></i><span style="color:var(--muted)">Stock</span></span>`;
+    const html=`<figure class="chart" data-kind="time" data-ci="${ci}">
+      <figcaption>${esc(S.ticker)} at $${X} (${fp(stock)}) on the sale date</figcaption>
+      <div class="capsub">${notes.length?"× where lines cross: "+esc(notes.join("; ")):"No lines cross over this term."}</div>
+      <div class="legend">${legend}</div>
+      <svg class="c" viewBox="0 0 ${W} ${H}" role="img" aria-label="Percent return over time if the stock is at $${X} on the sale date">${g}</svg>
+      <div class="readout"></div></figure>`;
+    return {html,ctx:{X,act,series,sx,sy,t,stock,n,m}};
+  });
+}
+function timeReadout(ctx,d,el,svg){
+  const {act,series,sx,sy,t,X,n}=ctx;d=Math.max(0,Math.min(t,Math.round(d)));
+  const rows=act.map(({r,i},k)=>{const v=bs(X,r.strike,(t-d)/365,(r.iv+S.ivShift)/100,S.rate/100)*100*n,pl=v-r.mid*100*n;
+    return `<tr><td><span class="sw" style="display:inline-block;background:${colK(i)};margin-right:6px;vertical-align:-1px"></span>$${r.strike} call</td><td>${fm(v)}</td><td class="${cls(pl)}">${fs(pl)}</td><td class="${cls(pl)}">${fp(series[k][d])}</td></tr>`}).join("");
+  el.innerHTML=`<table><caption>Sold on ${fdate(addDays(S.dataDate,d))} (day ${d} of ${t}), stock at $${X} (${fp(ctx.stock)})</caption><thead><tr><th>LEAP</th><th>Sale value</th><th>Profit/loss</th><th>Return</th></tr></thead><tbody>${rows}</tbody></table>`;
+  const hov=svg.querySelector(".hov");hov.style.display="";
+  const line=hov.querySelector("line");line.setAttribute("x1",sx(d));line.setAttribute("x2",sx(d));
+  hov.querySelectorAll("circle").forEach((c,k)=>{c.setAttribute("cx",sx(d));c.setAttribute("cy",sy(series[k][d]))});
+}
+
+/* ---------- render ---------- */
+function tiles(act){
+  const n=S.contracts,t=totalDays();
+  return `<div class="tiles">`+act.map(({r,i})=>{
+    const cost=r.mid*100*n,be=r.strike+r.mid,itm=Math.max(S.spot-r.strike,0),tv=r.mid-itm;
+    const sp=r.bid!=null&&r.ask!=null?fn((r.ask-r.bid)/Math.max(r.mid,.01)*100,0)+"%":"n/a";
+    return `<div class="tile"><h3><span class="sw" style="background:${colK(i)}"></span>$${r.strike} call · ${esc(fmon(S.expiry))}</h3><dl>
+      <dt>Cost</dt><dd>${fm(cost)}</dd>
+      <dt>Break-even at expiry</dt><dd>$${fn(be,2)} (${fp((be/S.spot-1)*100)})</dd>
+      <dt>Time value in the price</dt><dd>${fm(tv*100*n)} (${fn(tv/r.mid*100,0)}%)</dd>
+      <dt>Implied volatility</dt><dd>${fn(r.iv+S.ivShift,1)}%${S.ivShift?" (shifted)":""}</dd>
+      <dt>Delta</dt><dd>${leapDelta(r)!=null?fn(leapDelta(r),2):"n/a"}</dd>
+      <dt>Bid-ask spread</dt><dd>${sp}</dd></dl></div>`}).join("")+`</div>`;
+}
+let charts=[];
+function cw(){const el=$(S.tab==='cc'?'ccMain':S.tab==='put'?'putMain':'main');const w=el.clientWidth||$('ccTab').parentNode.clientWidth;return Math.max(300,Math.min(860,Math.round(w-30)))}
+let lastW=0;window.addEventListener('resize',()=>{const w=cw();if(Math.abs(w-lastW)>20){lastW=w;schedule()}});
+function render(){
+  renderSR();
+  if(S.tab==="cc"){renderCC();return}
+  if(S.tab==="put"){renderPut();return}
+  const main=$("main");
+  const act=activeStrikes();
+  if(!(S.spot>0)||!act.length){
+    main.innerHTML=`<div class="empty">Tick at least one strike and enter its mid price and implied volatility. Rows 2 and 3 are off by default; tick one to compare strikes.</div>`;charts=[];return}
+  if(S.view==="time"&&!S.exits.some(x=>x>0)){
+    main.innerHTML=tiles(act)+`<div class="empty">Enter at least one exit price to see return over time.</div>`;charts=[];return}
+  const list=S.view==="payoff"?payoffCharts(act):timeCharts(act);
+  const leapMissing=missFor("leap",S.months)?`<div class="banner bad"><b>\u274C No LEAP chain found near ${esc($("months").selectedOptions[0]?.dataset.base||S.months+" months")} for ${esc(S.ticker)}.</b> Mid prices below are model estimates, not market quotes. Try another length.</div>`:"";
+  main.innerHTML=staleBanner()+leapMissing+tiles(act)+list.map(o=>o.html).join("");
+  charts=list.map(o=>o.ctx);
+  main.querySelectorAll("figure.chart").forEach((fig,k)=>{
+    const svg=fig.querySelector("svg"),el=fig.querySelector(".readout"),ctx=charts[k],pay=fig.dataset.kind==="pay";
+    const figs=[...main.querySelectorAll("figure.chart")];
+    const at=ev=>{ // every chart follows the pointer: same stock price (payoff view) or same sell date (return view)
+      const rect=svg.getBoundingClientRect(),vbW=svg.viewBox.baseVal.width,px=(ev.clientX-rect.left)/rect.width*vbW;
+      let v;
+      if(pay){const f=(px-ctx.m.l)/ctx.iw;v=ctx.xmin+Math.max(0,Math.min(1,f))*(ctx.xmax-ctx.xmin)}
+      else{const f=(px-ctx.m.l)/(vbW-ctx.m.l-ctx.m.r);v=Math.max(0,Math.min(1,f))*ctx.t}
+      figs.forEach((fg,j)=>{const c=charts[j],sv=fg.querySelector("svg"),rd=fg.querySelector(".readout");if(pay)payReadout(c,v,rd,sv);else timeReadout(c,v,rd,sv)});
+    };
+    svg.addEventListener("pointermove",at);svg.addEventListener("pointerdown",at);
+    // resting state: show the readout at today's price (or the midpoint)
+    if(pay)payReadout(ctx,ctx.spot,el,svg);else timeReadout(ctx,Math.floor(ctx.t/2),el,svg);
+  });
+}
+
+/* ---------- live refresh through the viewer's Alpha Vantage connector ---------- */
+let mcp=null;
+claude.use("mcp").then(m=>{mcp=m}).catch(()=>{});
+function setStatus(msg,kind){const s=$("status");s.textContent=msg;s.className="status"+(kind?" "+kind:"")}
+function payloadOf(res){let p=res&&res.payload;if(typeof p==="string"){try{p=JSON.parse(p)}catch(e){}}
+  if(p==null&&res&&res.content&&res.content[0]&&res.content[0].text){try{p=JSON.parse(res.content[0].text)}catch(e){}}return p}
+function errMsg(e){
+  switch(e&&e.code){
+    case "needs_reauth":return "Add your Alpha Vantage key in the Account box at the top, then press Refresh.";
+    case "server_not_connected":return "Alpha Vantage isn't reachable. Check your connection.";
+    case "selection_required":return "You have more than one Alpha Vantage connector. Choose one when claude.ai asks, then refresh.";
+    case "not_in_manifest":case "consent_required":return "Alpha Vantage refused this request. Check your key in the Account box.";
+    case "approval_required":return "Approve the connector request to refresh.";
+    case "blocked_by_policy":return "Your organization blocks this data tool.";
+    case "rate_limited":case "server_unavailable":return "Alpha Vantage is busy or over its 75 calls a minute. Wait a minute and press Refresh again.";
+    case "tool_error":return "Alpha Vantage reported an error: "+String(e.message||"").slice(0,160)+" If it mentions the call limit, wait a minute and try again.";
+    case "cancelled":return "The request was cancelled.";
+    default:return "The refresh failed ("+((e&&e.code)||"unknown")+"). Your entries are unchanged.";
+  }
+}
+/* Alpha Vantage allows 75 calls a minute on this key. Keep a rolling log (shared across reloads)
+   and pause with a visible countdown before going over. */
+const AV_PER_MIN=(()=>{try{const n=+localStorage.getItem(KEY+"-avrate");return n>0?Math.max(1,n-3):72}catch(e){return 72}})();let avLog=[],avCtx="";
+try{avLog=(JSON.parse(localStorage.getItem(KEY+"-avlog")||"[]")||[]).filter(t=>Date.now()-t<60000)}catch(e){}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function avCountdown(ms,why){
+  const end=Date.now()+ms;
+  while(Date.now()<end){setStatus(`${why} Waiting ${Math.ceil((end-Date.now())/1000)} seconds, then continuing automatically.${avCtx?" "+avCtx:""}`,"wait");await sleep(1000)}
+  setStatus("Continuing…"+(avCtx?" "+avCtx:""));
+}
+async function avSlot(){
+  for(;;){const now=Date.now();avLog=avLog.filter(t=>now-t<60000);
+    if(avLog.length<AV_PER_MIN)break;
+    await avCountdown(60000-(now-avLog[0])+300,`Alpha Vantage allows 75 calls a minute and this page has used ${avLog.length} in the last minute.`)}
+  avLog.push(Date.now());avTotal++;try{localStorage.setItem(KEY+"-avlog",JSON.stringify(avLog))}catch(e){}
+  apiInfo();
+}
+let avTotal=0;
+function apiInfo(){const el=$("apiInfo");if(!el)return;const n=avLog.filter(t=>Date.now()-t<60000).length;
+  el.textContent=avTotal?`Alpha Vantage calls: ${avTotal} since this page opened, ${n} in the last minute (limit 75 a minute).`:"";}
+setInterval(apiInfo,5000);
+const avLimitText=t=>/rate limit|per minute|call frequency|requests per|higher API call/i.test(t||"");
+async function call(tool,input){
+  for(let attempt=0;;attempt++){
+    await avSlot();
+    let res;
+    try{res=await mcp.callTool(SERVER,tool,input,{cache:false})}
+    catch(e){
+      const lim=e&&(e.code==="rate_limited"||avLimitText(e.message));
+      if(lim&&attempt<2){await avCountdown(61000,"Alpha Vantage says the 75-calls-a-minute limit was reached.");continue}
+      if(e&&e.retryable&&attempt<1){await sleep((e.retryAfterMs||1500)+Math.random()*500);continue}
+      throw e;
+    }
+    const p=payloadOf(res),msg=p&&typeof p==="object"&&(p.Information||p.Note);
+    if(msg&&avLimitText(msg)&&attempt<2){await avCountdown(61000,"Alpha Vantage says the 75-calls-a-minute limit was reached.");continue}
+    return res;
+  }
+}
+/* Alpha Vantage sometimes sends "-" for implied volatility and delta (seen for every contract on 2026-10-20 data).
+   Then the volatility is backed out of the quoted mark with Black-Scholes, and the delta comes from the model (left null so the page labels it). */
+function ivSolve(type,S0,K,T,r,mark){
+  if(!(S0>0&&K>0&&T>0&&mark>0))return null;
+  const f=sg=>{const c=bs(S0,K,T,sg,r);return type==="put"?c-S0+K*Math.exp(-r*T):c};
+  let lo=0.01,hi=5;if(f(lo)>mark+0.005||f(hi)<mark-0.005)return null;
+  for(let k=0;k<60;k++){const mid=(lo+hi)/2;if(f(mid)<mark)lo=mid;else hi=mid}
+  return (lo+hi)/2;
+}
+let greeksModel=false;   // set when a chain came without implied volatility/delta
+function mapCalls(rows,d,exp,type,spot){
+  const T=d&&exp?diffDays(d,exp)/365:0,S0=spot||S.spot,r0=(S.rate||0)/100;
+  return rows.map(c=>{
+    const k=parseFloat(c.strike),mark=parseFloat(c.mark);let iv=parseFloat(c.implied_volatility),dl=parseFloat(c.delta),modelIv=false;
+    if(!(iv>0)){const v=ivSolve(type||c.type||"call",S0,k,T,r0,mark);if(v>0){iv=v;modelIv=true}}
+    if(!isFinite(dl)||modelIv)dl=null;
+    return {k,mark,bid:parseFloat(c.bid),ask:parseFloat(c.ask),oi:parseInt(c.open_interest,10)||0,vol:parseInt(c.volume,10)||0,delta:dl,iv,ivModel:modelIv};
+  }).filter(c=>c.k>0&&c.mark>0&&c.iv>0).map(c=>{if(c.ivModel)greeksModel=true;return c});
+}
+/* ---------- saving Alpha Vantage calls ----------
+   1. A chain for a past date never changes, so each (symbol, date, expiry) is kept and reused.
+   2. Each symbol's price data is kept too, and reused until a newer end-of-day close could exist:
+      a weekday after 4:30 pm New York time. While waiting for Alpha Vantage to publish
+      (or on a holiday), it re-checks at most every 30 minutes. Copies older than 24 hours are
+      always refetched, and the Refresh button always fetches fresh. */
+const RECHECK_MS=30*60000,MAXAGE_MS=24*3600000;
+const noOptDay=new Map();   // "SYM|date" -> time Alpha Vantage said it had no options for that day
+const FIELDS=["type","strike","mark","bid","ask","open_interest","volume","delta","implied_volatility"];
+let chainStore={};try{chainStore=JSON.parse(localStorage.getItem(KEY+"-chains")||"{}")||{}}catch(e){}
+function chainSave(){try{const ks=Object.keys(chainStore);if(ks.length>120){ks.sort((a,b)=>chainStore[a].t-chainStore[b].t).slice(0,ks.length-120).forEach(k=>delete chainStore[k])}
+  localStorage.setItem(KEY+"-chains",JSON.stringify(chainStore))}catch(e){try{localStorage.removeItem(KEY+"-chains")}catch(e2){}}}   // storage full or blocked: keep this session's copy in memory
+async function fetchChain(sym,d,exp){
+  const key=sym+"|"+d+"|"+exp,hit=chainStore[key];
+  if(hit){hit.t=Date.now();return hit.r.map(a=>{const o={};FIELDS.forEach((f,i)=>o[f]=i?String(a[i]):(a[0]==="p"?"put":"call"));return o})}
+  const seen=noOptDay.get(sym+"|"+d);if(seen&&Date.now()-seen<RECHECK_MS)return [];
+  const op=payloadOf(await call("HISTORICAL_OPTIONS",{symbol:sym,date:d,expiration:exp,datatype:"json",return_full_data:true}));
+  const rows=(op&&op.data)||[],msg=(op&&op.message)||"";
+  if(!rows.length&&/no data for symbol/i.test(msg)&&!/expiration/i.test(msg))noOptDay.set(sym+"|"+d,Date.now());   // whole day missing: may appear later
+  else if(rows.length||/expiration/i.test(msg)){   // a listed chain, or an expiry that was never listed that day
+    chainStore[key]={t:Date.now(),r:rows.filter(c=>c.type==="call"||c.type==="put").map(c=>[c.type==="put"?"p":"c"].concat(FIELDS.slice(1).map(f=>{const v=parseFloat(c[f]);return isFinite(v)?v:null})))};
+    chainSave();
+  }
+  return rows;
+}
+let tcache={};try{tcache=JSON.parse(localStorage.getItem(KEY+"-tc")||"{}")||{}}catch(e){}
+function tcSave(){try{const ks=Object.keys(tcache);if(ks.length>60)ks.sort((a,b)=>tcache[a].at-tcache[b].at).slice(0,ks.length-60).forEach(k=>delete tcache[k]);localStorage.setItem(KEY+"-tc",JSON.stringify(tcache))}catch(e){}}
+function nySession(){ // the latest weekday whose close (4:30 pm New York, with a margin) has passed
+  const p={};new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date()).forEach(x=>p[x.type]=x.value);
+  const today=`${p.year}-${p.month}-${p.day}`,mins=(+p.hour)*60+(+p.minute),wd=d=>new Date(pd(d)).getUTCDay();
+  let d=(wd(today)%6!==0&&mins>=16*60+30)?today:addDays(today,-1);
+  while(wd(d)%6===0)d=addDays(d,-1);
+  return d;
+}
+function tcFresh(c){ // can we skip Alpha Vantage for this symbol?
+  if(!c||!c.dates||!c.dates.length)return false;
+  const age=Date.now()-c.at;if(age>MAXAGE_MS)return false;
+  const behind=c.dates[0]<nySession(),lag=c.optDate&&c.optDate<c.dates[0];
+  if(behind||lag)return age<RECHECK_MS;   // waiting on Alpha Vantage: re-check every 30 minutes
+  return true;
+}
+async function fetchCalls(sym,d,exp){return (await fetchChain(sym,d,exp)).filter(c=>c.type==="call")}
+async function leapRefetch(){ // after a new LEAP length or expiry: fetch only that chain
+  if(!mcp)mcp=await claude.use("mcp").catch(()=>null);
+  if(!mcp||!S.loaded||S.loaded.ticker!==S.ticker)return;
+  const sym=S.ticker,d=S.dataDate,picked=S.expiry;
+  try{
+    let found=null;
+    const tries=$("expiry").dataset.manual==="1"?[picked]:[0,-1,1,-2,2,-3,3].map(o=>targetExpiry(d,S.months,o)).filter(e=>diffDays(d,e)>=120);
+    for(const exp of tries){setStatus("Looking for the "+fdate(exp)+" LEAP chain…");const c=await fetchCalls(sym,d,exp);if(c.length){found={exp,c};break}}
+    markMiss("leap",S.months,!!found);
+    if(!found){setStatus("No LEAP chain found for that length. The values are model estimates.","err");return}
+    chain=mapCalls(found.c,d,found.exp,"call",S.spot);S.expiry=found.exp;S.expVerified="chain";
+    S.strikes.forEach((r,i)=>{if(i===0&&r.atm){let b=chain[0];chain.forEach(c=>{if(Math.abs(c.k-S.spot)<Math.abs(b.k-S.spot))b=c});r.strike=b.k}if(r.on||r.mid!=null)autofill(i)});
+    S.loaded.expiry=S.expiry;S.loaded.months=S.months;S.loaded.listed=true;saveChain();
+    setStatus("LEAP chain "+fdate(S.expiry)+" loaded ("+fdate(d)+" end-of-day data).","ok");
+  }catch(e){setStatus(errMsg(e),"err")}
+  finally{$("expiry").dataset.manual="";syncInputs();save();schedule()}
+}
+async function refresh(force){force=force===true;
+  if(!mcp){mcp=await claude.use("mcp").catch(()=>null)}
+  if(!mcp){setStatus("Live refresh isn't available in this view. Open the page in claude.ai with your Alpha Vantage connector, or type the numbers in by hand.","err");return}
+  const sym=(($("ticker").value||S.ticker||"CRWD")+"").trim().toUpperCase();S.ticker=sym;
+  if(refreshing){refreshAgain=true;return}refreshing=true;refreshAgain=false;const used0=avTotal;greeksModel=false;
+  $("refresh").disabled=true;
+  try{
+    let ts=null,highNote="";
+    const snap=tcache[sym],fresh=!force&&tcFresh(snap);
+    let dates,closeOn,newHigh=null;
+    if(fresh){
+      setStatus("Loading "+sym+" from the saved copy…");
+      dates=snap.dates;closeOn=d=>snap.closes[d];newHigh=snap.high;highNote=snap.highNote||"";
+      if(snap.sr){S.sr=S.sr||{};S.sr[sym]=snap.sr}
+    }else{
+    setStatus("Fetching the latest end-of-day price for "+sym+"…");
+    try{
+      const ares=await call("TIME_SERIES_DAILY_ADJUSTED",{symbol:sym,outputsize:"full",datatype:"json",return_full_data:true});
+      const ap=payloadOf(ares);ts=ap&&ap["Time Series (Daily)"];
+    }catch(e){
+      if(["needs_reauth","server_not_connected","selection_required","not_in_manifest","consent_required","approval_required","blocked_by_policy"].includes(e&&e.code))throw e;
+      ts=null;
+    }
+    if(ts&&Object.keys(ts).length>=200){
+      try{const sr=computeSR(ts,true);if(sr){S.sr=S.sr||{};S.sr[sym]={asOf:sr.asOf,levels:sr.levels.map(({p,side,label})=>({p,side,label}))}}}catch(e){}
+      const ks=Object.keys(ts).sort().reverse(),cut=addDays(ks[0],-365);let mx=0;
+      for(const k of ks){if(k<cut)break;const row=ts[k],c=parseFloat(row["4. close"]),a=parseFloat(row["5. adjusted close"]),h=parseFloat(row["2. high"]);
+        if(c>0&&a>0&&h>0)mx=Math.max(mx,h*a/c)}
+      if(mx>0)newHigh=+mx.toFixed(2);
+    }else{
+      ts=null;
+      const dres=await call("TIME_SERIES_DAILY",{symbol:sym,outputsize:"compact",datatype:"json"});
+      const dp=payloadOf(dres);ts=dp&&dp["Time Series (Daily)"];
+      if(!ts)throw {code:"tool_error",message:(dp&&(dp.Information||dp.Note||dp["Error Message"]))||"No price data returned for "+sym};
+      highNote=" The 52-week high could not be loaded; type it in if you want the marker.";
+      try{const sr=computeSR(ts,false);if(sr){S.sr=S.sr||{};S.sr[sym]={asOf:sr.asOf,levels:sr.levels.map(({p,side,label})=>({p,side,label}))}}}catch(e){}
+    }
+    if(!ts)throw {code:"tool_error",message:"No price data returned for "+sym};
+    dates=Object.keys(ts).sort().reverse();
+    const top=dates.slice(0,3),closes={};top.forEach(d=>closes[d]=parseFloat(ts[d]["4. close"]));
+    closeOn=d=>closes[d];dates=top;
+    tcache[sym]=Object.assign({},snap||{},{at:Date.now(),dates:top,closes,high:newHigh,highNote,sr:S.sr&&S.sr[sym]||null,optDate:null});tcSave();
+    }
+    let found=null;
+    outer: for(const d of (fresh&&snap.optDate?[snap.optDate]:dates.slice(0,2))){
+      for(const off of [0,-1,1,-2,2,-3,3]){
+        const exp=targetExpiry(d,S.months,off);
+        if(diffDays(d,exp)<120)continue;
+        setStatus("Looking for the "+fdate(exp)+" LEAP chain on "+fdate(d)+"…");
+        const calls=await fetchCalls(sym,d,exp);
+        if(calls.length){found={d,exp,calls};break outer}
+      }
+    }
+    const isNew=S.loaded?S.loaded.ticker!==sym:sym!=="CRWD";
+    // next earnings date: the calendar first; if none is listed (e.g. just reported), the last report date gives an estimate
+    {
+      const AUTH=["needs_reauth","server_not_connected","selection_required","consent_required","approval_required","blocked_by_policy"];
+      let ec=tcache[sym]&&tcache[sym].earn;
+      if(force||!ec||Date.now()-ec.at>=MAXAGE_MS||ec.date===undefined){
+        ec={at:Date.now(),date:null,last:null};
+        try{
+          const er=payloadOf(await call("EARNINGS_CALENDAR",{symbol:sym,horizon:"12month"}));
+          const csv=typeof er==="string"?er:(er&&(er.result||er.data))||"";
+          const lines=String(csv).trim().split(/\r?\n/),hdr=(lines.shift()||"").split(","),ci=hdr.indexOf("reportDate");
+          ec.date=(ci<0?[]:lines.map(l=>l.split(",")[ci]).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&d>=dates[0]).sort())[0]||null;
+        }catch(e){if(AUTH.includes(e&&e.code))throw e;ec=null}
+        if(ec&&!ec.date){
+          try{const hp=payloadOf(await call("EARNINGS",{symbol:sym}));
+            const q=((hp&&hp.quarterlyEarnings)||[]).map(x=>x.reportedDate).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)).sort().pop();
+            ec.last=q||null}catch(e){if(AUTH.includes(e&&e.code))throw e}
+        }
+        if(ec&&tcache[sym]){tcache[sym].earn=ec;tcSave()}
+      }
+      S.earnSrc=S.earnSrc||{};
+      if(ec){
+        if(ec.date){S.earn[sym]=ec.date;S.earnSrc[sym]="auto"}
+        else if(S.earnSrc[sym]!=="typed"){
+          const est=ec.last?addDays(ec.last,91):null;
+          if(est&&est>dates[0]){S.earn[sym]=est;S.earnSrc[sym]="est"}else{delete S.earn[sym];S.earnSrc[sym]="none"}
+          S.earnLast=S.earnLast||{};S.earnLast[sym]=ec.last||null;
+        }
+      }
+    }
+    const useDate=found?found.d:dates[0];
+    if(tcache[sym]&&found){tcache[sym].optDate=found.d;tcSave()}
+    S.latest={ticker:sym,date:dates[0],close:closeOn(dates[0])};
+    S.spot=closeOn(useDate);S.dataDate=useDate;S.high=newHigh?Math.max(newHigh,S.spot):(isNew?null:S.high);
+    let leapMsg;
+    if(!found){
+      if(isNew){chain=[];S.expVerified="none";S.expiry=targetExpiry(S.dataDate,S.months);fitDefaults()}
+      leapMsg="No LEAP chain found near a "+S.months+"-month expiry.";markMiss("leap",S.months,false);
+    }else{
+      chain=mapCalls(found.calls,found.d,found.exp,"call",S.spot);markMiss("leap",S.months,true);
+      S.expiry=found.exp;S.expVerified="chain";
+      if(isNew)fitDefaults();
+      S.strikes.forEach((r,i)=>{
+        if(i===0&&r.atm){let best=chain[0];chain.forEach(c=>{if(Math.abs(c.k-S.spot)<Math.abs(best.k-S.spot))best=c});r.strike=best.k}
+        if(r.on||i===0)autofill(i);
+      });
+      S.strikes.forEach((r,i)=>{if(!r.on&&r.mid!=null&&r.src!=="chain")autofill(i)});
+      saveChain();
+      leapMsg="LEAP chain "+fdate(S.expiry)+".";
+    }
+    S.loaded={ticker:sym,spot:S.spot,dataDate:S.dataDate,high:S.high,expiry:S.expiry,months:S.months,listed:!!found};
+    const ccOk=await ccFetch(sym,S.dataDate,isNew);
+    stamp=Date.now();syncInputs();ccSync();save();schedule();
+    setStatus(sym+" close $"+fn(S.spot)+" on "+fdate(S.dataDate)+". "+leapMsg+" "+(ccOk?"Covered-call chain "+fdate(S.cc.expiry)+".":"No covered-call chain found near "+S.cc.days+" days.")+(S.high?" 52-week high $"+fn(S.high)+".":"")+" End-of-day data."+(greeksModel?" Alpha Vantage sent no implied volatility or delta for these chains, so both are calculated from the quoted prices (labelled model).":"")+highNote+(useDate!==dates[0]?` ⚠ Latest close is $${fn(S.latest.close)} on ${fdate(dates[0])} (${fp((S.latest.close/S.spot-1)*100)}), but Alpha Vantage hasn't published that day's options yet, so the price and options shown are both from ${fdate(useDate)}.`:"")+(fresh?(()=>{const tm=t=>new Date(t).toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}),wait=snap.dates[0]<nySession()||(snap.optDate&&snap.optDate<snap.dates[0]),k=avTotal-used0;
+      return ` Saved copy from ${tm(snap.at)}. `+(wait?`Alpha Vantage hadn't published newer data then; the page checks again after ${tm(snap.at+RECHECK_MS)}.`:"No newer close exists yet.")+(k?` ${k} call${k>1?"s":""} for chains not saved before.`:" No Alpha Vantage calls.")+" Press Refresh to force a fresh fetch."})()
+      :` Fresh from Alpha Vantage at ${new Date(stamp).toLocaleTimeString([], {hour:"numeric",minute:"2-digit"})}, ${avTotal-used0} call${avTotal-used0===1?"":"s"}.`),(found&&ccOk)?"ok":"err");
+  }catch(e){setStatus(errMsg(e),"err")}
+  finally{$("refresh").disabled=false;refreshing=false;schedule();
+    if(refreshAgain){refreshAgain=false;if(S.ticker&&S.ticker!==dataTicker())setTimeout(()=>refresh(),0)}}   // a symbol picked while this one loaded
+}
+let refreshing=false,refreshAgain=false;
+
+/* ---------- export ---------- */
+async function exportCsv(){
+  const dl=await claude.use("downloads").catch(()=>null);if(!dl)return;
+  if(S.tab==="put"){
+    const rows=[["ticker","price","data_date","expiry","days","strike","put_delta","premium","bid","ask","return_pct","annual_pct","cushion_pct","break_even","spread_pct","open_interest","earnings_before_expiry"]];
+    putRows().forEach(o=>{const c=o.c;if(!c)return;rows.push([o.sym,o.spot,o.date,o.exp,o.t,c.k,c.d.toFixed(3),c.mid,c.bid??"",c.ask??"",c.per.toFixed(2),c.ann.toFixed(1),c.cush.toFixed(1),c.be.toFixed(2),c.q.sp!=null?c.q.sp.toFixed(1):"",c.oi??"",o.earnIn?"yes":"no"])});
+    try{await dl.save({filename:`put-scan-${S.put.days}d.csv`,data:rows.map(r=>r.join(",")).join("\n")})}catch(e){}
+    return;
+  }
+  if(S.tab==="cc"){
+    if(S.cc.pmcc&&!activeStrikes().length){setStatus("Turn on a LEAP strike first to export the poor man's covered call.","err");return}
+    const act=ccActive(),prices=[0.85,0.9,0.95,1,1.05,1.1,1.15].map(f=>+(S.spot*f).toFixed(2));
+    const rows=[["ticker","strategy","short_strike","expiry","premium","stock_price_at_expiry","profit_loss_usd","return_pct"]];
+    act.forEach(({r})=>prices.forEach(x=>{const p=ccPL(r,x);rows.push([S.ticker,S.cc.mode==="option"?"short_call_only":S.cc.pmcc?"poor_mans_covered_call":"covered_call",r.strike,S.cc.expiry,r.mid,x,Math.round(p),(p/ccCapital(r)*100).toFixed(1)])}));
+    try{await dl.save({filename:`${S.ticker.toLowerCase()}-covered-call-scenarios.csv`,data:rows.map(r=>r.join(",")).join("\n")})}catch(e){}
+    return;
+  }
+  const act=activeStrikes(),t=totalDays(),hz=horizons(),n=S.contracts;
+  const prices=[...new Set([0.8,0.9,1,1.15,1.3,1.5].map(f=>Math.round(S.spot*f)).concat(S.high?[Math.round(S.high)]:[]))].sort((a,b)=>a-b);
+  const rows=[["ticker","strike","expiry","sale_date","stock_price","profit_loss_usd","return_pct","entry_mid","iv_pct"]];
+  act.forEach(({r})=>hz.forEach(h=>prices.forEach(x=>{
+    rows.push([S.ticker,r.strike,S.expiry,addDays(S.dataDate,h.d),x,Math.round(plAt(r,x,h.d,t)),retAt(r,x,h.d,t).toFixed(1),r.mid,(r.iv+S.ivShift).toFixed(1)])})));
+  try{await dl.save({filename:`${S.ticker.toLowerCase()}-leap-scenarios.csv`,data:rows.map(r=>r.join(",")).join("\n")})}catch(e){}
+}
+
+/* ---------- support and resistance (computed from daily prices) ---------- */
+function computeSR(ts,adjusted){
+  let rows=Object.keys(ts).sort().map(k=>{const r=ts[k],c=parseFloat(r["4. close"]),a=adjusted?parseFloat(r["5. adjusted close"]):c,f=c>0?a/c:1;
+    return {d:k,h:parseFloat(r["2. high"])*f,l:parseFloat(r["3. low"])*f,c:a}}).filter(r=>r.c>0&&r.h>0&&r.l>0);
+  if(!adjusted)for(let i=rows.length-1;i>0;i--){const q=rows[i].c/rows[i-1].c;if(q>1.8||q<0.55){rows=rows.slice(i);break}}
+  if(rows.length<30)return null;
+  const last=rows[rows.length-1],spot=last.c;
+  const sma=n=>rows.length>=n?rows.slice(-n).reduce((a,r)=>a+r.c,0)/n:null;
+  let atr=0;const tr=rows.slice(-15);for(let i=1;i<tr.length;i++)atr+=Math.max(tr[i].h-tr[i].l,Math.abs(tr[i].h-tr[i-1].c),Math.abs(tr[i].l-tr[i-1].c));atr/=Math.max(1,tr.length-1);
+  const tol=Math.max(spot*0.012,atr*0.4);
+  const yr=rows.filter(r=>r.d>=addDays(last.d,-365)),K=5,piv=[];
+  for(let i=K;i<yr.length-K;i++){
+    const win=yr.slice(i-K,i+K+1);
+    if(yr[i].h>=Math.max(...win.map(r=>r.h)))piv.push({p:yr[i].h,d:yr[i].d,t:"high"});
+    if(yr[i].l<=Math.min(...win.map(r=>r.l)))piv.push({p:yr[i].l,d:yr[i].d,t:"low"});
+  }
+  // also the last few days' extremes, which a centred window cannot confirm yet
+  const tail=yr.slice(-K);if(tail.length){const lo=tail.reduce((a,r)=>r.l<a.l?r:a),hi=tail.reduce((a,r)=>r.h>a.h?r:a);piv.push({p:lo.l,d:lo.d,t:"low"});piv.push({p:hi.h,d:hi.d,t:"high"})}
+  piv.sort((a,b)=>a.p-b.p);
+  const groups=[];
+  piv.forEach(v=>{const g=groups[groups.length-1];if(g&&Math.abs(v.p-g.sum/g.n)<=tol){g.n++;g.sum+=v.p;g.items.push(v)}else groups.push({n:1,sum:v.p,items:[v]})});
+  const cands=groups.map(g=>{const it=g.items.slice().sort((a,b)=>b.d.localeCompare(a.d)),p=g.sum/g.n;
+    const kind=it.every(x=>x.t==="high")?"Swing high":it.every(x=>x.t==="low")?"Swing low":"Turning point";
+    return {p,score:g.n,label:kind+(g.n>1?"s":"")+" "+it.slice(0,2).map(x=>fmonDay(x.d)).join(", ")+(g.n>2?" +"+(g.n-2):"")+(g.n>1?" ("+g.n+" touches)":"")}});
+  const hi52=Math.max(...yr.map(r=>r.h)),lo52=Math.min(...yr.map(r=>r.l));
+  [[sma(50),"50-day average"],[sma(100),"100-day average"],[sma(200),"200-day average"]].forEach(([p,l])=>{if(p)cands.push({p,score:2,label:l,ma:true})});
+  cands.push({p:hi52,score:3,label:"52-week high"},{p:lo52,score:3,label:"52-week low"});
+  const pick=side=>{
+    const list=cands.filter(c=>side==="R"?c.p>spot*1.003:c.p<spot*0.997).filter(c=>Math.abs(c.p/spot-1)<=0.45)
+      .sort((a,b)=>Math.abs(a.p-spot)-Math.abs(b.p-spot));
+    const out=[];
+    list.forEach(c=>{const near=out.find(o=>Math.abs(o.p-c.p)<=tol);
+      if(near){if(!near.label.includes(c.label))near.label+=" · "+c.label;near.score+=c.score}else if(out.length<4)out.push({...c})});
+    return out.map(o=>({p:+o.p.toFixed(2),side,label:o.label,score:o.score}));
+  };
+  return {asOf:last.d,spot,levels:[...pick("R").reverse(),...pick("S")]};
+}
+function fmonDay(s){const d=new Date(pd(s));return MON[d.getUTCMonth()]+" "+d.getUTCDate()}
+
+function srList(){const o=S.sr&&S.sr[S.ticker];return o&&o.levels?o.levels:[]}
+function srSvg(sx,xmin,xmax,top,bot){
+  if(!S.srOn)return "";
+  let g="",k=0;
+  srList().filter(l=>l.p>xmin&&l.p<xmax).sort((a,b)=>a.p-b.p).forEach(l=>{
+    const c=l.side==="R"?"var(--loss)":"var(--gain)",x=sx(l.p);
+    g+=`<line x1="${x}" x2="${x}" y1="${top}" y2="${bot}" stroke="${c}" stroke-opacity=".55" stroke-dasharray="1 4" stroke-width="1.5"><title>${l.side==="R"?"Resistance":"Support"} $${fn(l.p)}: ${esc(l.label)}</title></line>`});
+  return g;
+}
+function srLegend(){return S.srOn&&srList().length?`<span style="color:var(--gain)"><i style="border-top-style:dotted"></i><span style="color:var(--muted)">Support</span></span><span style="color:var(--loss)"><i style="border-top-style:dotted"></i><span style="color:var(--muted)">Resistance</span></span>`:""}
+function renderSR(){
+  const el=$("srBody"),o=S.sr&&S.sr[S.ticker];
+  if(!o||!o.levels||!o.levels.length){el.innerHTML=`<p class="hint" style="margin:0">No levels for ${esc(S.ticker)} yet. Press Refresh to work them out from the past year of prices.</p>`;return}
+  const row=l=>`<tr><td><span class="pill ${l.side==="R"?"poor":"good"}">${l.side==="R"?"Resistance":"Support"}</span></td><td>$${fn(l.p)}</td><td>${fp((l.p/S.spot-1)*100)}</td><td style="text-align:left;font-family:var(--font-ui);white-space:normal">${esc(l.label)}</td></tr>`;
+  el.innerHTML=`<div style="overflow-x:auto"><table class="srt"><thead><tr><th>Type</th><th>Level</th><th>vs price</th><th style="text-align:left">Why</th></tr></thead><tbody>${o.levels.map(row).join("")}</tbody></table></div><p class="hint">From ${esc(S.ticker)} daily prices to ${fdate(o.asOf)}, adjusted for splits: swing highs and lows (where price turned), the 50-, 100- and 200-day averages, and the 52-week range. Nearest four on each side. A guide, not a guarantee.</p>`;
+}
+
+/* ---------- covered calls ---------- */
+let ccChain=[];
+let putRes={};   // "SYM|days" -> scan result
+try{const o=JSON.parse(localStorage.getItem(KEY+"-puts")||"null");if(o&&typeof o==="object")putRes=o}catch(e){}
+let basisDb=null,favDb=null,putDb=null,putScanning=false,putQueue=[],putTimer=null;
+try{const c=JSON.parse(localStorage.getItem(KEY+"-ccchain")||"null");if(c&&c.ticker===S.ticker&&c.expiry===S.cc.expiry)ccChain=c.rows||[]}catch(e){}
+function saveCcChain(){try{localStorage.setItem(KEY+"-ccchain",JSON.stringify({ticker:S.ticker,expiry:S.cc.expiry,rows:ccChain}))}catch(e){}}
+function nearestFriday(s){const day=new Date(pd(s)).getUTCDay();let d=(5-day+7)%7;if(d>3)d-=7;return addDays(s,d)}
+const ccDaysT=()=>Math.max(1,diffDays(S.dataDate,S.cc.expiry));
+const ccN=()=>S.cc.pmcc?S.contracts:Math.max(1,Math.floor(S.cc.shares/100));
+const basisOf=()=>{const b=S.basis[S.ticker];return b>0?b:S.spot};
+function ccRound(x){
+  if(ccChain.length){let b=ccChain[0];ccChain.forEach(c=>{if(Math.abs(c.k-x)<Math.abs(b.k-x))b=c});return b.k}
+  const st=x<25?0.5:x<100?1:x<250?2.5:5;return Math.round(x/st)*st;
+}
+function ccFill(i){
+  const r=S.cc.strikes[i];if(!(r.strike>0))return;
+  const c=ccChain.find(c=>Math.abs(c.k-r.strike)<0.001);
+  if(c){Object.assign(r,{mid:c.mark,iv:+(c.iv*100).toFixed(2),delta:c.delta,bid:c.bid,ask:c.ask,oi:c.oi,vol:c.vol,src:"chain"});return}
+  let near=null;for(const c2 of ccChain)if(!near||Math.abs(c2.k-r.strike)<Math.abs(near.k-r.strike))near=c2;
+  const iv=+((near?near.iv*100:(r.iv||S.cc.strikes.find(x=>x.iv)?.iv||50))).toFixed(2);
+  const T=ccDaysT()/365;
+  Object.assign(r,{iv,mid:+bs(S.spot,r.strike,T,iv/100,S.rate/100).toFixed(2),delta:null,bid:null,ask:null,oi:null,vol:null,src:near?"model-near":"model"});
+}
+function ccDelta(r){
+  if(r.src!=="typed"&&r.delta!=null&&!S.ivShift&&quoteSpotOk())return r.delta;
+  if(!(r.iv>0&&r.strike>0))return null;
+  return bsDelta(S.spot,r.strike,ccDaysT()/365,(r.iv+S.ivShift)/100,S.rate/100);
+}
+function ccSetByPct(p,allOn){p.forEach((f,i)=>{const r=S.cc.strikes[i];r.on=allOn||i===0;r.strike=ccRound(S.spot*(1+f));ccFill(i)})}
+function ccSetByDelta(ds){
+  ds.forEach((dv,i)=>{
+    const r=S.cc.strikes[i];r.on=true;
+    if(ccChain.length){const T=ccDaysT()/365,useQ=quoteSpotOk()&&!S.ivShift;let b=null,bd=9;
+      ccChain.forEach(c=>{if(!(c.mark>=0.05))return;const d=useQ&&c.delta>0?c.delta:bsDelta(S.spot,c.k,T,(c.iv*100+S.ivShift)/100,S.rate/100);if(Math.abs(d-dv)<bd){bd=Math.abs(d-dv);b=c}});if(b)r.strike=b.k}
+    else{ // model: search strikes for the target delta
+      const iv=(S.cc.strikes[0].iv||50)/100,T=ccDaysT()/365;let best=S.spot,bd=9;
+      for(let x=S.spot*0.7;x<=S.spot*1.6;x+=S.spot*0.005){const d=Math.abs(bsDelta(S.spot,x,T,iv,S.rate/100)-dv);if(d<bd){bd=d;best=x}}
+      r.strike=ccRound(best);
+    }
+    ccFill(i);
+  });
+}
+// Expiries to try for a given length: weeklies near the date, or monthly third Fridays for a year out
+function ccTries(d,days){
+  if(days>=300)return [0,-1,1,-2,2,-3,3].map(o=>targetExpiry(d,12,o));
+  const f=nearestFriday(addDays(d,days));return [0,7,-7,14,-14,21,-21].map(o=>addDays(f,o));
+}
+async function ccFetch(sym,d,isNew){
+  const f=nearestFriday(addDays(d,S.cc.days));
+  let got=null;
+  for(const exp of ccTries(d,S.cc.days)){
+    if(diffDays(d,exp)<5)continue;
+    setStatus("Looking for the "+fdate(exp)+" covered-call chain…");
+    const calls=await fetchCalls(sym,d,exp);
+    if(calls.length){got={exp,calls};break}
+  }
+  markMiss("cc",S.cc.days,!!got);
+  if(!got){ccChain=[];S.cc.expiry=f;S.cc.expVerified="none";if(isNew)ccSetByPct([0,0.05,0.10],false);else S.cc.strikes.forEach((r,i)=>ccFill(i));return false}
+  const wasSeed=S.cc.expVerified==="seed";
+  ccChain=mapCalls(got.calls,d,got.exp,"call",S.spot);S.cc.expiry=got.exp;S.cc.expVerified="chain";
+  if(isNew||wasSeed)ccSetByPct([0,0.05,0.10],false);else S.cc.strikes.forEach((r,i)=>ccFill(i));
+  saveCcChain();return true;
+}
+async function ccRefetch(recenter){ // after a new expiry chip: fetch only that chain
+  if(!mcp)mcp=await claude.use("mcp").catch(()=>null);
+  if(!mcp||!S.loaded||S.loaded.ticker!==S.ticker){ccSync();schedule();return}
+  try{const ok=await ccFetch(S.ticker,S.dataDate,!!recenter);
+    setStatus(ok?"Covered-call chain "+fdate(S.cc.expiry)+" loaded ("+fdate(S.dataDate)+" end-of-day data).":"No covered-call chain found near "+S.cc.days+" days. Values below are model estimates.",ok?"ok":"err")}
+  catch(e){setStatus(errMsg(e),"err")}
+  ccSync();save();schedule();
+}
+function buildCcRows(){
+  $("ccStrikes").innerHTML=S.cc.strikes.slice(0,1).map((r,i)=>`
+   <div class="strike">
+     <div class="tick" hidden><input type="checkbox" id="ccOn${i}" aria-label="Call ${i+1}"></div>
+     <label class="f">Strike $<input type="number" id="ccK${i}" inputmode="decimal" step="0.5" min="1"></label>
+     <label class="f">Premium $<input type="number" id="ccM${i}" inputmode="decimal" step="0.01" min="0"></label>
+     <label class="f">IV %<input type="number" id="ccV${i}" inputmode="decimal" step="0.1" min="1"></label>
+     <div class="meta" id="ccMeta${i}"></div>
+   </div>`).join("");
+}
+function liq(r){
+  if(r.bid==null||r.ask==null||!(r.ask>0)||isNaN(r.bid))return {cls:"",txt:"no quote"};
+  const sp=(r.ask-r.bid)/Math.max(r.mid,.01)*100;
+  const cls=sp<=5&&r.oi>=500?"good":sp<=12&&r.oi>=100?"fair":"poor";
+  return {cls,sp,txt:{good:"Liquid",fair:"Fair",poor:"Thin"}[cls]};
+}
+function ccSync(){
+  $("ccShares").value=S.cc.shares;$("ccBasis").value=S.basis[S.ticker]??"";$("ccBasis").placeholder=fn(S.spot);
+  $("ccMode").value=S.cc.mode;$("ccPmcc").checked=S.cc.pmcc;$("ccEarn").value=S.earn[S.ticker]||"";
+  $("ccMaxA").value=S.cc.maxAssign;
+  S.cc.strikes.forEach((r,i)=>{if(!$("ccK"+i))return;$("ccOn"+i).checked=r.on;$("ccK"+i).value=r.strike??"";$("ccM"+i).value=r.mid??"";$("ccV"+i).value=r.iv??""});
+  ccDerived();
+}
+function ccDerived(){
+  if(!$("ccDays"))return;
+  $("ccDays").querySelectorAll("button").forEach(b=>{const d=+b.dataset.days,x=missFor("cc",d);b.setAttribute("aria-pressed",d===S.cc.days);
+    b.classList.toggle("nochain",x);b.title=x?"No option chain found near "+d+" days":"";b.setAttribute("aria-label",d+" days"+(x?", no option chain found":""))});
+  const t=ccDaysT();
+  $("ccExpNote").textContent="Expiry in use: "+fdate(S.cc.expiry)+" ("+t+" days). "+({seed:"Listed in the Oct 20 end-of-day chain.",chain:"Listed in the latest chain.",none:"Not checked against the chain; values are model estimates until you refresh."}[S.cc.expVerified]||"");
+  const es=(S.earnSrc||{})[S.ticker];
+  const lastRep=(S.earnLast||{})[S.ticker];
+  $("ccEarnNote").textContent=es==="est"?"Estimate, not announced: about 13 weeks after the last report"+(lastRep?" ("+fdate(lastRep)+")":"")+". Alpha Vantage's calendar has no date yet. Type the real one when it's announced.":es==="none"?"Alpha Vantage's calendar lists no upcoming earnings date for "+S.ticker+(lastRep?" (last reported "+fdate(lastRep)+")":"")+". Type one if you know it.":es==="auto"?"From Alpha Vantage's earnings calendar. You can type over it.":es==="typed"?"Entered by you. Refresh replaces it with the calendar date if one is listed.":"Fills in from Alpha Vantage's earnings calendar when you press Refresh. You can type over it.";
+  $("ccSharesNote").textContent=S.cc.pmcc?"":"Number of shares, not options. One call is sold per 100 shares: "+Math.floor(S.cc.shares/100)+" call"+(S.cc.shares>=200?"s":"")+".";
+  $("ccSharesNote").hidden=S.cc.pmcc;
+  $("ccBasisNote").textContent=S.basis[S.ticker]>0?"Saved for "+S.ticker+(basisDb?" in your account, so it's here next time.":" in this browser."):"Blank means today's price ($"+fn(S.spot)+"). Saved for each symbol once entered.";
+  $("ccShares").closest("label").hidden=S.cc.pmcc;$("ccBasis").closest("label").hidden=S.cc.pmcc;$("ccMode").querySelector('option[value="basis"]').hidden=S.cc.pmcc;
+  if(S.cc.pmcc&&S.cc.mode==="basis"){S.cc.mode="today";$("ccMode").value="today"}
+  $("ccMode").querySelector('option[value="today"]').textContent=S.cc.pmcc?"LEAP + call":"Shares + call, from today's price";
+  const L=activeStrikes()[0];
+  $("ccPmccNote").textContent=L?"Uses the LEAP tab's $"+L.r.strike+" call ("+fmon(S.expiry)+", mid $"+fn(L.r.mid)+") × "+S.contracts+" contract"+(S.contracts>1?"s":"")+".":"Turn on a strike in the LEAP tab first.";
+  [["cvPick","pick"],["cvHold","hold"],["cvExp","exp"]].forEach(([id,v])=>$(id).setAttribute("aria-pressed",S.cc.view===v));
+  S.cc.strikes.forEach((r,i)=>{
+    if(!$("ccMeta"+i))return;
+    const d=ccDelta(r),q=liq(r);let m=d==null?"":"Delta "+fn(d,2)+((r.src==="chain"||r.src==="seed")&&d===r.delta?"":" (model)");
+    if(r.bid!=null)m+=` · bid ${fn(r.bid)} / ask ${fn(r.ask)} · spread ${fn(q.sp,0)}% · OI ${r.oi.toLocaleString()} · volume ${r.vol??0} · ${q.txt}`;
+    else if(r.src.startsWith("model"))m+=" · model estimate, not a quote";
+    else if(r.src==="typed")m+=" · entered by hand";
+    $("ccMeta"+i).textContent=m;
+  });
+}
+function onCC(e){
+  const id=e.target.id;
+  if(id==="ccShares")S.cc.shares=Math.max(100,Math.round((num($("ccShares").value)||100)/100)*100);
+  if(id==="ccBasis"){const b=num($("ccBasis").value);if(b>0)S.basis[S.ticker]=b;else delete S.basis[S.ticker];basisSave()}
+  if(id==="ccMode")S.cc.mode=$("ccMode").value;
+  if(id==="ccPmcc")S.cc.pmcc=$("ccPmcc").checked;
+  if(id==="ccMaxA")S.cc.maxAssign=+$("ccMaxA").value||20;
+  if(id==="ccEarn"){const v=$("ccEarn").value;if(v)S.earn[S.ticker]=v;else delete S.earn[S.ticker];S.earnSrc=S.earnSrc||{};S.earnSrc[S.ticker]="typed"}
+  S.cc.strikes.forEach((r,i)=>{
+    if(id==="ccOn"+i){r.on=$("ccOn"+i).checked;if(r.on&&r.mid==null){ccFill(i);ccSync()}}
+    if(id==="ccK"+i){const k=num($("ccK"+i).value);if(k){r.strike=k;ccFill(i);$("ccM"+i).value=r.mid;$("ccV"+i).value=r.iv}}
+    if(id==="ccM"+i){r.mid=num($("ccM"+i).value);r.src="typed";r.bid=r.ask=null}
+    if(id==="ccV"+i){r.iv=num($("ccV"+i).value);r.src="typed";r.bid=r.ask=null}
+  });
+  ccDerived();save();schedule();
+}
+function ccActive(){return S.cc.strikes.slice(0,1).map((r,i)=>({r,i})).filter(o=>o.r.strike>0&&o.r.mid>0&&o.r.iv>0)}
+// P/L in dollars when the short call expires, with the stock at x
+function ccPL(r,x){
+  const n=ccN(),t=ccDaysT(),short=(r.mid-Math.max(x-r.strike,0))*100*n;
+  if(S.cc.mode==="option")return short;
+  if(S.cc.pmcc){const L=activeStrikes()[0].r,tl=totalDays();
+    return (bs(x,L.strike,Math.max(0,tl-t)/365,(L.iv+S.ivShift)/100,S.rate/100)-L.mid)*100*n+short}
+  return (x-S.spot)*S.cc.shares+short+(S.cc.mode==="basis"?(S.spot-basisOf())*S.cc.shares:0);
+}
+function ccBase(x){ // the same position without the call
+  if(S.cc.mode==="option")return 0;
+  if(S.cc.pmcc){const L=activeStrikes()[0].r,n=ccN(),t=ccDaysT(),tl=totalDays();
+    return (bs(x,L.strike,Math.max(0,tl-t)/365,(L.iv+S.ivShift)/100,S.rate/100)-L.mid)*100*n}
+  return (x-S.spot)*S.cc.shares+(S.cc.mode==="basis"?(S.spot-basisOf())*S.cc.shares:0);
+}
+function ccCapital(r){
+  if(S.cc.mode==="option")return r?r.mid*100*ccN():1;
+  if(S.cc.pmcc){const L=activeStrikes()[0].r;return L.mid*100*ccN()}
+  return (S.cc.mode==="basis"?basisOf():S.spot)*S.cc.shares;
+}
+const ann=(pct,t)=>pct*365/t;
+function ccBreakeven(r,lo,hi){let prev=null;for(let k=0;k<=400;k++){const x=lo+(hi-lo)*k/400,y=ccPL(r,x);if(prev&&prev.y<0&&y>=0)return prev.x+(x-prev.x)*(-prev.y)/(y-prev.y);prev={x,y}}return null}
+function renderCC(){
+  const main=$("ccMain"),act=ccActive(),t=ccDaysT(),n=ccN(),pm=S.cc.pmcc,opt=S.cc.mode==="option";
+  if(pm&&!activeStrikes().length){main.innerHTML=`<div class="empty">Turn on a LEAP strike in the LEAP tab to use it as the long leg.</div>`;return}
+  if(!act.length||!(S.spot>0)){main.innerHTML=`<div class="empty">Tick at least one call and enter its premium and implied volatility.</div>`;return}
+  let html=staleBanner();
+  if(missFor("cc",S.cc.days))html+=`<div class="banner bad"><b>\u274C No option chain found near ${S.cc.days} days for ${esc(S.ticker)}.</b> The premiums below are model estimates, not market quotes. Try another expiry button.</div>`;
+  // earnings and structure warnings
+  const e=S.earn[S.ticker];
+  const est=(S.earnSrc||{})[S.ticker]==="est";
+  if(e&&e>S.dataDate&&e<=S.cc.expiry)html+=`<div class="banner"><b>${est?"Earnings are probably around "+fdate(e)+" (estimated), before this expiry.":"Earnings on "+fdate(e)+" fall before this expiry."}</b> Premiums are higher because of it, and the stock can gap through your strike or fall sharply overnight.</div>`;
+  else if(e&&e>S.cc.expiry)html+=`<div class="banner info">Next earnings ${est?"probably around ":""}${fdate(e)}${est?" (estimated)":""}, after this expiry.</div>`;
+  else if(!e)html+=`<div class="banner info">${(S.earnSrc||{})[S.ticker]==="none"?"Alpha Vantage lists no upcoming earnings date for "+esc(S.ticker)+". Add one above to check whether it falls before this expiry.":"Add the next earnings date above to check whether it falls before this expiry."}</div>`;
+  if(pm&&diffDays(S.cc.expiry,S.expiry)<30)html+=`<div class="banner">The short call expires too close to the LEAP. Pick a shorter call or a longer LEAP.</div>`;
+  const lo=S.spot*0.5,hi=S.spot*1.6;
+  html+=`<div class="tiles">`+act.map(({r,i})=>{
+    const cap=ccCapital(r);
+    const d=ccDelta(r),q=liq(r),prem=r.mid*100*n;
+    const flat=ccPL(r,S.spot),called=ccPL(r,Math.max(r.strike,S.spot));
+    const atK=ccPL(r,Math.max(r.strike,0.01)),be=ccBreakeven(r,lo,hi);
+    const rows=[
+      ["Premium received",`${fm(prem)} ($${fn(r.mid)}/share)`],
+      ["Delta",d==null?"n/a":fn(d,2)],
+      ["Rough chance called away",d==null?"n/a":fn(d*100,0)+"%"],
+      ["Liquidity",q.cls?`<span class="pill ${q.cls}">${q.txt}</span> ${fn(q.sp,0)}% spread`:"no quote"],
+      ["Open interest / volume",r.oi!=null?`${r.oi.toLocaleString()} / ${(r.vol||0).toLocaleString()}`:"n/a"],
+    ].concat(opt?[
+      ["Kept in full if the stock ends at or below",`$${fn(r.strike)}`],
+      ["Premium yield on the stock",`${fp(r.mid/S.spot*100).replace("+","")} (${fp(ann(r.mid/S.spot*100,t)).replace("+","")}/yr)`],
+      ["Call loses money above",`$${fn(r.strike+r.mid)}`],
+      ["If the stock ends +10%",(v=>`${fs(v)} (${fp(v/cap*100)} of premium)`)(ccPL(r,S.spot*1.1))]
+    ]:[
+      ["If the price stays flat",`${fs(flat)} (${fp(flat/cap*100)}, ${fp(ann(flat/cap*100,t))}/yr)`],
+      [pm?"Best case (stock at strike)":"If called away",`${fs(pm?atK:called)} (${fp((pm?atK:called)/cap*100)}, ${fp(ann((pm?atK:called)/cap*100,t))}/yr)`],
+      ["Break-even at expiry",be?"$"+fn(be):"n/a"],
+      ["Downside cushion",fp(r.mid/S.spot*100).replace("+","")+" of the price"]
+    ]);
+    if(!opt&&!pm&&S.cc.mode==="today"&&S.basis[S.ticker]>0)rows.push(["If called, vs your cost $"+fn(basisOf()),fs((r.strike-basisOf()+r.mid)*S.cc.shares)]);
+    return `<div class="tile"><h3><span class="sw" style="background:${colK(i)}"></span>Sell $${r.strike} call · ${esc(fdate(S.cc.expiry))}</h3><dl>${rows.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl></div>`;
+  }).join("")+`</div>`;
+  // chart for the chosen view
+  const view=S.cc.view||"pick";
+  const chartObj=view==="hold"?ccHoldChart(act[0].r):view==="exp"?ccExpChart(act[0].r):ccPickChart(act[0].r);
+  html+=chartObj.html;
+  // buy-back tables
+  const days=[...new Set([Math.round(t/3),Math.round(2*t/3),Math.max(1,t-3)])].filter(d=>d>0&&d<t);
+  const priceSet=K=>{const a=[S.spot*0.9,S.spot,S.spot*1.1,K*0.95,K,K*1.05].map(v=>+v.toFixed(2)).sort((x,y)=>x-y),out=[];
+    a.forEach(v=>{if(!out.length||v-out[out.length-1]>Math.max(0.5,S.spot*0.015))out.push(v)});return out};
+  if(days.length){
+    html+=`<div><div style="font-weight:600;margin:4px 0 2px">Cost to buy back the call (to close or roll)</div><div class="capsub">Model value per ${n} contract${n>1?"s":""}, with the net against the premium you took in.</div><div class="bb">`+act.map(({r,i})=>{
+      const head=`<tr><th>${esc(S.ticker)} at</th>${days.map(d=>`<th>${fmon(addDays(S.dataDate,d)).replace(/ \d+$/,"")} ${new Date(pd(addDays(S.dataDate,d))).getUTCDate()}<small>day ${d}</small></th>`).join("")}</tr>`;
+      const body=priceSet(r.strike).map(x=>`<tr><td>$${fn(x,x<20?2:0)}${Math.abs(x-r.strike)<0.01?" (strike)":Math.abs(x-S.spot)<0.01?" (today)":""}</td>${days.map(d=>{const v=bs(x,r.strike,(t-d)/365,(r.iv+S.ivShift)/100,S.rate/100)*100*n,net=r.mid*100*n-v;return `<td>${fm(v)}<small class="${cls(net)}">${fs(net)}</small></td>`}).join("")}</tr>`).join("");
+      return `<div class="panel"><div style="font-weight:600;margin-bottom:4px"><span class="sw" style="display:inline-block;background:${colK(i)};margin-right:6px"></span>$${r.strike} call</div><div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${body}</tbody></table></div></div>`}).join("")+`</div></div>`;
+  }
+  main.innerHTML=html+ccScanHtml();
+  chartObj.wire&&chartObj.wire();
+  ccScanWire();
+  ccSuggestNote();
+}
+
+/* ---------- covered call: strike candidates, suggestion, charts ---------- */
+function ccSigma(){ // at-the-money IV for the expiry in use
+  let iv=null,b=null;ccChain.forEach(c=>{if(!b||Math.abs(c.k-S.spot)<Math.abs(b.k-S.spot))b=c});
+  iv=b?b.iv*100:(S.cc.strikes[0].iv||50);return (iv+S.ivShift)/100;
+}
+function ccExpMove(){const t=ccDaysT(),em=S.spot*ccSigma()*Math.sqrt(t/365);return {lo:S.spot-em,hi:S.spot+em,pct:em/S.spot*100}}
+function ccNextRes(){if(!S.srOn)return null;return srList().filter(l=>l.side==="R"&&l.p>S.spot*1.001).sort((a,b)=>a.p-b.p)[0]||null}
+function ccCands(){
+  const t=ccDaysT(),T=t/365,useQ=quoteSpotOk()&&!S.ivShift,out=[];
+  if(ccChain.length){
+    ccChain.forEach(c=>{if(c.k<S.spot*0.95||c.k>S.spot*1.5||!(c.mark>=0.05))return;
+      const d=useQ&&c.delta>0?c.delta:bsDelta(S.spot,c.k,T,(c.iv*100+S.ivShift)/100,S.rate/100);
+      const q=liq({bid:c.bid,ask:c.ask,mid:c.mark,oi:c.oi});
+      out.push({k:c.k,mid:c.mark,bid:c.bid,ask:c.ask,oi:c.oi,vol:c.vol,iv:c.iv*100,d,q,quote:true})});
+  }else{
+    const iv=S.cc.strikes[0].iv||50,seen=new Set();
+    for(let f=0.97;f<=1.4;f+=0.01){const k=ccRound(S.spot*f);if(seen.has(k))continue;seen.add(k);
+      const sig=(iv+S.ivShift)/100,mid=bs(S.spot,k,T,sig,S.rate/100);if(mid<0.05)continue;
+      out.push({k,mid,iv,d:bsDelta(S.spot,k,T,sig,S.rate/100),q:{cls:"",txt:"model"},quote:false})}
+  }
+  out.forEach(c=>{c.yld=c.mid/S.spot*100*365/t;c.per=c.mid/S.spot*100});
+  return out.filter(c=>c.d>0.005).sort((a,b)=>a.k-b.k);
+}
+function ccSuggestion(cands){
+  cands=cands||ccCands();if(!cands.length)return null;
+  const tgt=(S.cc.maxAssign||20)/100,R=ccNextRes(),em=ccExpMove();
+  const liqOk=c=>!c.quote||c.q.cls!=="poor";
+  // your limit decides; liquidity is the only filter. Resistance and expected move are reported, not enforced.
+  const tiers=[c=>c.d<=tgt&&liqOk(c),c=>c.d<=tgt];
+  for(let i=0;i<tiers.length;i++){const pool=cands.filter(tiers[i]);if(pool.length){let best=pool[0];pool.forEach(c=>{if(c.yld>best.yld)best=c});return {c:best,tier:i,R,em,tgt}}}
+  return null;
+}
+function ccSuggestNote(){
+  const el=$("ccSuggest");if(!el)return;const sg=ccSuggestion();
+  if(!sg){el.textContent="No strike in this expiry stays under "+(S.cc.maxAssign||20)+"%. Try a shorter expiry or a higher limit.";return}
+  const c=sg.c,why=[`${fn(c.d*100,0)}% chance of being called away`,`premium $${fn(c.mid)} (${fn(c.yld,1)}% a year)`];
+  if(c.quote&&c.q.cls)why.push(c.q.txt.toLowerCase()+" market");
+  if(sg.R)why.push(c.k>=sg.R.p?`above resistance $${fn(sg.R.p,0)}`:`below resistance $${fn(sg.R.p,0)}`);
+  why.push(c.k>=sg.em.hi?`outside the expected move ($${fn(sg.em.hi,0)})`:`inside the expected move ($${fn(sg.em.hi,0)})`);
+  const cur=Math.abs(S.cc.strikes[0].strike-c.k)<0.001;
+  el.innerHTML=`<b>Suggested: $${fn(c.k,c.k%1?1:0)} call</b>${cur?" (selected)":""}. ${why.join(", ")}.${sg.tier?" No liquid strike fits, so this one is thin.":""}${c.quote?"":" Model estimate; refresh for quotes."} The highest premium that stays under your limit. Not advice.`;
+}
+function ccPickStrike(k){const r=S.cc.strikes[0];r.on=true;r.strike=k;ccFill(0);ccSync();save();render()}
+
+function ccPickChart(sel){
+  const cands=ccCands(),t=ccDaysT(),sg=ccSuggestion(cands),tgt=(S.cc.maxAssign||20)/100,em=ccExpMove(),R=S.srOn?srList().filter(l=>l.side==="R"&&l.p>S.spot):[];
+  if(!cands.length)return {html:`<div class="empty">No strikes to compare for this expiry.</div>`};
+  const W=cw(),H=W<520?Math.round(W*0.95):380,m={l:W<520?46:56,r:14,t:30,b:44},iw=W-m.l-m.r,ih=H-m.t-m.b;
+  const xmax=Math.min(0.75,Math.max(tgt+0.1,...cands.map(c=>c.d)))+0.02,ymax=Math.max(...cands.filter(c=>c.d<=xmax).map(c=>c.yld),1)*1.12;
+  const vis=cands.filter(c=>c.d<=xmax);
+  const sx=d=>m.l+d/xmax*iw,sy=y=>m.t+(ymax-y)/ymax*ih;
+  let g="";
+  niceTicks(0,ymax,5).forEach(v=>{if(v<0)return;g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(v)}" y2="${sy(v)}" stroke="var(--grid)"/><text x="${m.l-6}" y="${sy(v)+4}" text-anchor="end">${v}%</text>`});
+  niceTicks(0,xmax*100,W<520?4:7).forEach(v=>{if(v<0||v/100>xmax)return;g+=`<line y1="${m.t}" y2="${H-m.b}" x1="${sx(v/100)}" x2="${sx(v/100)}" stroke="var(--grid)"/><text x="${sx(v/100)}" y="${H-m.b+16}" text-anchor="middle">${v}%</text>`});
+  // above your limit: shaded
+  g+=`<rect x="${sx(tgt)}" y="${m.t}" width="${Math.max(0,W-m.r-sx(tgt))}" height="${ih}" fill="var(--loss)" fill-opacity=".07"/>`;
+  g+=`<line x1="${sx(tgt)}" x2="${sx(tgt)}" y1="${m.t-6}" y2="${H-m.b}" stroke="var(--loss)" stroke-width="1.5" stroke-dasharray="4 3"/><text x="${sx(tgt)+4}" y="${m.t-10}" style="fill:var(--loss)">Your limit ${Math.round(tgt*100)}%</text>`;
+  // expected move edge: strikes beyond it sit left of this line
+  const emc=vis.find(c=>c.k>=em.hi);
+  if(emc){const x=sx(emc.d);g+=`<line x1="${x}" x2="${x}" y1="${m.t}" y2="${H-m.b}" stroke="var(--accent)" stroke-opacity=".7" stroke-dasharray="2 3" stroke-width="1.5"/>`}
+  // dots
+  const step=Math.max(1,Math.ceil(vis.length/(W<520?6:10)));
+  vis.forEach((c,i)=>{
+    const x=sx(c.d),y=sy(c.yld),isSel=Math.abs(c.k-sel.strike)<0.001,isSug=sg&&sg.c.k===c.k;
+    const op=!c.quote?0.75:c.q.cls==="good"?1:c.q.cls==="fair"?0.75:0.35;
+    const hollow=c.quote&&c.q.cls==="poor";
+    const res=R.find(l=>c.k>=l.p&&!vis.some(o=>o.k<c.k&&o.k>=l.p));
+    if(isSug)g+=`<circle cx="${x}" cy="${y}" r="11" fill="var(--gain)" fill-opacity=".18" stroke="var(--gain)" stroke-width="2"/>`;
+    g+=`<circle cx="${x}" cy="${y}" r="${isSel?6.5:5}" fill="${hollow?"var(--panel)":"var(--k0)"}" fill-opacity="${hollow?1:op}" stroke="var(--k0)" stroke-width="${hollow?1.5:isSel?2.5:0}"/>`;
+    if(isSel)g+=`<circle cx="${x}" cy="${y}" r="10" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`;
+    if(isSel||isSug||i%step===0||res)g+=`<text x="${x}" y="${y-(isSel||isSug?15:9)}" text-anchor="middle" class="${isSel||isSug?"lab":""}" style="${isSug?"fill:var(--gain);font-weight:600":""}">$${fn(c.k,c.k%1?1:0)}${isSug?" suggested":""}${res?" · R":""}</text>`;
+  });
+  g+=`<text x="${m.l+iw/2}" y="${H-4}" text-anchor="middle">Chance of being called away (delta)</text>`;
+  g+=`<text transform="translate(12 ${m.t+ih/2}) rotate(-90)" text-anchor="middle">Premium, % a year</text>`;
+  g+=`<g class="hov" style="display:none"><circle r="8" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="2 2"/></g>`;
+  const legend=`<span style="color:var(--k0)"><i style="border-top-width:6px;width:8px;border-radius:4px"></i><span style="color:var(--muted)">Liquid (solid) to thin (hollow)</span></span><span style="color:var(--gain)"><i></i><span style="color:var(--muted)">Suggested</span></span><span style="color:var(--loss)"><i style="border-top-style:dashed"></i><span style="color:var(--muted)">Your limit</span></span>`+(emc?`<span style="color:var(--accent)"><i style="border-top-style:dotted"></i><span style="color:var(--muted)">Expected move edge ($${fn(em.hi,0)}); dots left of it are outside</span></span>`:"")+(R.length?`<span style="color:var(--muted)"><span>R = first strike above a resistance level</span></span>`:"");
+  const html=`<figure class="chart" id="ccFig" data-kind="pick"><figcaption>Strike picker: ${esc(S.ticker)} calls expiring ${esc(fdate(S.cc.expiry))} (${t} days)</figcaption>
+    <div class="capsub">Each dot is a strike. Higher is more premium; further right is more likely to be called away. ${ccChain.length?"From the "+fdate(S.dataDate)+" end-of-day chain.":"Model estimates; refresh for quotes."} Tap a dot to select it.</div>
+    <div class="legend">${legend}</div>
+    <svg class="c" viewBox="0 0 ${W} ${H}" role="img" aria-label="Premium yield against chance of assignment for each strike">${g}</svg><div class="readout"></div></figure>`;
+  const wire=()=>{
+    const fig=$("ccFig"),svg=fig.querySelector("svg"),el=fig.querySelector(".readout"),hov=svg.querySelector(".hov"),ci=hov.querySelector("circle");
+    const show=c=>{
+      const n=ccN(),isSel=Math.abs(c.k-sel.strike)<0.001;
+      ci.setAttribute("cx",sx(c.d));ci.setAttribute("cy",sy(c.yld));hov.style.display="";
+      const rows=[["Premium",`$${fn(c.mid)} a share, ${fm(c.mid*100*n)} for ${n} call${n>1?"s":""}`+(c.quote&&c.bid>=0&&c.ask>0?` (bid ${fn(c.bid)} / ask ${fn(c.ask)})`:"")],
+        ["Chance of being called away",fn(c.d*100,0)+"%"+(c.d>tgt?" (over your limit)":"")],
+        ["Premium yield",`${fn(c.per,2)}% for ${t} days, ${fn(c.yld,1)}% a year`],
+        ["Kept in full if the stock ends below",`$${fn(c.k)} (${fp((c.k/S.spot-1)*100)})`],
+        ["Liquidity",c.quote?(c.q.cls?`<span class="pill ${c.q.cls}">${c.q.txt}</span> ${fn(c.q.sp,0)}% spread, OI ${(c.oi||0).toLocaleString()}`:"no quote"):"model estimate"]];
+      el.innerHTML=`<table><caption>$${fn(c.k)} call${isSel?" (selected)":""}</caption><tbody>${rows.map(([a,b])=>`<tr><td style="white-space:normal">${a}</td><td style="text-align:right;white-space:normal">${b}</td></tr>`).join("")}</tbody></table>`+(isSel?"":`<div class="btnrow" style="margin-top:6px"><button type="button" class="pickBtn">Select the $${fn(c.k)} call</button></div>`);
+      const pb=el.querySelector(".pickBtn");if(pb)pb.onclick=()=>ccPickStrike(c.k);
+    };
+    const near=ev=>{const rect=svg.getBoundingClientRect(),px=(ev.clientX-rect.left)/rect.width*W,py=(ev.clientY-rect.top)/rect.height*H;
+      let b=null,bd=1e9;vis.forEach(c=>{const d=Math.hypot(sx(c.d)-px,sy(c.yld)-py);if(d<bd){bd=d;b=c}});return {c:b,d:bd}};
+    svg.addEventListener("pointermove",ev=>{const n=near(ev);if(n.c)show(n.c)});
+    svg.addEventListener("click",ev=>{const n=near(ev);if(n.c&&n.d<40)ccPickStrike(n.c.k)});
+    show(vis.find(c=>Math.abs(c.k-sel.strike)<0.001)||(sg&&sg.c)||vis[0]);
+  };
+  return {html,wire};
+}
+
+function ccWithMode(f){const m=S.cc.mode;if(m==="option")S.cc.mode="today";try{return f()}finally{S.cc.mode=m}}
+function ccHoldChart(r){
+  const t=ccDaysT(),n=ccN(),pm=S.cc.pmcc,em=ccExpMove();
+  const hold=x=>ccWithMode(()=>ccBase(x)),cc=x=>ccWithMode(()=>ccPL(r,x));
+  const xc=r.strike+r.mid; // above this, selling the call leaves you worse off
+  const xmin=Math.max(0.01,Math.min(em.lo,r.strike)*0.95),xmax=Math.max(em.hi,xc)*1.06;
+  const steps=200;let ylo=0,yhi=0;
+  for(let k=0;k<=steps;k++){const x=xmin+(xmax-xmin)*k/steps;[hold(x),cc(x)].forEach(v=>{ylo=Math.min(ylo,v);yhi=Math.max(yhi,v)})}
+  const pad=(yhi-ylo)*0.08;ylo-=pad;yhi+=pad;
+  const W=cw(),H=W<520?Math.round(W*1.0):400,m={l:W<520?58:72,r:16,t:40,b:44},iw=W-m.l-m.r,ih=H-m.t-m.b;
+  const sx=x=>m.l+(x-xmin)/(xmax-xmin)*iw,sy=y=>m.t+(yhi-y)/(yhi-ylo)*ih;
+  let g="";
+  g+=`<rect x="${sx(Math.max(xmin,em.lo))}" y="${m.t}" width="${sx(Math.min(xmax,em.hi))-sx(Math.max(xmin,em.lo))}" height="${ih}" fill="var(--accent)" fill-opacity=".07"/>`;
+  g+=`<text x="${(sx(Math.max(xmin,em.lo))+sx(Math.min(xmax,em.hi)))/2}" y="${H-m.b-6}" text-anchor="middle" style="fill:var(--accent)">Expected move ±${fn(em.pct,0)}%</text>`;
+  niceTicks(ylo,yhi,6).forEach(v=>{g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(v)}" y2="${sy(v)}" stroke="var(--grid)"/><text x="${m.l-8}" y="${sy(v)+4}" text-anchor="end">${v<0?"−":v>0?"+":""}$${Math.abs(v).toLocaleString("en-US")}</text>`});
+  niceTicks(xmin,xmax,W<520?4:8).forEach(v=>{g+=`<line y1="${m.t}" y2="${H-m.b}" x1="${sx(v)}" x2="${sx(v)}" stroke="var(--grid)"/><text x="${sx(v)}" y="${H-m.b+16}" text-anchor="middle">$${v}</text>`});
+  g+=srSvg(sx,xmin,xmax,m.t,H-m.b);
+  // gap between the two lines: green where the call helps, red where it costs you
+  const band=(a,b)=>{if(b<=a)return "";let top="",bot="";for(let k=0;k<=60;k++){const x=a+(b-a)*k/60;top+=(k?"L":"M")+sx(x).toFixed(1)+","+sy(cc(x)).toFixed(1)}
+    for(let k=60;k>=0;k--){const x=a+(b-a)*k/60;bot+="L"+sx(x).toFixed(1)+","+sy(hold(x)).toFixed(1)}return top+bot+"Z"};
+  g+=`<path d="${band(xmin,Math.min(xc,xmax))}" fill="var(--gain)" fill-opacity=".18"/><path d="${band(Math.max(xc,xmin),xmax)}" fill="var(--loss)" fill-opacity=".18"/>`;
+  g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(0)}" y2="${sy(0)}" stroke="var(--zero)" stroke-width="2"/>`;
+  const marks=[{x:S.spot,t:"Today $"+fn(S.spot,0),c:"var(--stock)"},{x:r.strike,t:"Strike $"+fn(r.strike,0),c:"var(--k0)"},{x:xc,t:"Even $"+fn(xc,0),c:"var(--loss)"}].sort((a,b)=>a.x-b.x);
+  let lastPx=-1e9,row=0;marks.forEach(mk=>{if(mk.x<xmin||mk.x>xmax)return;const px=sx(mk.x);row=(px-lastPx<80)?(row+1)%3:0;lastPx=px;
+    g+=`<line x1="${px}" x2="${px}" y1="${m.t-4}" y2="${H-m.b}" stroke="${mk.c}" stroke-dasharray="3 3"/><text x="${px}" y="${12+row*11}" text-anchor="middle" style="fill:${mk.c}">${esc(mk.t)}</text>`});
+  const path=f=>{let d="";for(let k=0;k<=steps;k++){const x=xmin+(xmax-xmin)*k/steps;d+=(k?"L":"M")+sx(x).toFixed(1)+","+sy(f(x)).toFixed(1)}return d};
+  g+=`<path d="${path(hold)}" fill="none" stroke="var(--stock)" stroke-width="2" stroke-dasharray="6 4"/><path d="${path(cc)}" fill="none" stroke="var(--k0)" stroke-width="2.6" stroke-linejoin="round"/>`;
+  g+=`<text x="${m.l+iw/2}" y="${H-4}" text-anchor="middle">${esc(S.ticker)} price on ${esc(fdate(S.cc.expiry))} ($)</text>`;
+  g+=`<g class="hov" style="display:none"><line y1="${m.t}" y2="${H-m.b}" stroke="var(--ink)"/><circle r="4.5" fill="var(--k0)" stroke="var(--panel)" stroke-width="1.5"/><circle r="4" fill="var(--stock)" stroke="var(--panel)" stroke-width="1.5"/></g>`;
+  const holdName=pm?"Just hold the LEAP":"Just hold the shares",ccName=(pm?"LEAP":"Shares")+" + sell $"+fn(r.strike)+" call";
+  const legend=`<span style="color:var(--k0)"><i></i><span style="color:var(--muted)">${esc(ccName)}</span></span><span style="color:var(--stock)"><i style="border-top-style:dashed"></i><span style="color:var(--muted)">${holdName}</span></span><span style="color:var(--gain)"><i style="border-top-width:8px"></i><span style="color:var(--muted)">Call helps</span></span><span style="color:var(--loss)"><i style="border-top-width:8px"></i><span style="color:var(--muted)">Call costs you</span></span>`+srLegend();
+  const ref=pm?"the LEAP's cost":S.cc.mode==="basis"?"your cost basis $"+fn(basisOf()):"today's price $"+fn(S.spot);
+  const html=`<figure class="chart" id="ccFig" data-kind="hold"><figcaption>Sell the $${fn(r.strike)} call or just hold? Profit/loss on ${esc(fdate(S.cc.expiry))}</figcaption>
+    <div class="capsub">You come out ahead by up to ${fm(r.mid*100*n)} if ${esc(S.ticker)} ends below $${fn(xc)}. Above that, you miss out on the rise. Measured from ${ref}${pm?", LEAP valued with the model":", "+S.cc.shares+" shares"}.</div>
+    <div class="legend">${legend}</div>
+    <svg class="c" viewBox="0 0 ${W} ${H}" role="img" aria-label="Covered call against holding without a call, by price at expiry">${g}</svg><div class="readout"></div></figure>`;
+  const wire=()=>{
+    const fig=$("ccFig"),svg=fig.querySelector("svg"),el=fig.querySelector(".readout"),hov=svg.querySelector(".hov");
+    const read=x=>{const a=cc(x),b=hold(x),d=a-b;
+      el.innerHTML=`<table><caption>If ${esc(S.ticker)} is $${fn(x,0)} (${fp((x/S.spot-1)*100)}) on ${esc(fdate(S.cc.expiry))}</caption><thead><tr><th>Position</th><th>Profit/loss</th></tr></thead><tbody><tr><td>${esc(ccName)}</td><td class="${cls(a)}">${fs(a)}</td></tr><tr><td>${holdName}</td><td class="${cls(b)}">${fs(b)}</td></tr><tr><td><b>${d>=0?"Selling the call helps by":"Selling the call costs you"}</b></td><td class="${cls(d)}"><b>${fm(Math.abs(d))}</b></td></tr></tbody></table>`+srNear(x);
+      hov.style.display="";const ln=hov.querySelector("line");ln.setAttribute("x1",sx(x));ln.setAttribute("x2",sx(x));
+      const cs=hov.querySelectorAll("circle");cs[0].setAttribute("cx",sx(x));cs[0].setAttribute("cy",sy(a));cs[1].setAttribute("cx",sx(x));cs[1].setAttribute("cy",sy(b))};
+    const at=ev=>{const rect=svg.getBoundingClientRect(),px=(ev.clientX-rect.left)/rect.width*W;read(xmin+Math.max(0,Math.min(1,(px-m.l)/iw))*(xmax-xmin))};
+    svg.addEventListener("pointermove",at);svg.addEventListener("pointerdown",at);read(S.spot);
+  };
+  return {html,wire};
+}
+
+/* expiry comparison: one chain per expiry button, fetched when this view is opened */
+const CC_DAYS=[30,45,60,90,180,365];
+let ccExp={key:"",rows:{},busy:false};
+function ccExpKey(){return S.ticker+"|"+S.dataDate}
+async function ccExpLoad(){
+  if(ccExp.busy)return;
+  if(!mcp)mcp=await claude.use("mcp").catch(()=>null);
+  if(!mcp||!S.loaded||S.loaded.ticker!==S.ticker)return;
+  const key=ccExpKey();if(ccExp.key!==key)ccExp={key,rows:{},busy:false};
+  const todo=CC_DAYS.filter(d=>!ccExp.rows[d]);if(!todo.length)return;
+  ccExp.busy=true;
+  try{
+    for(const days of todo){
+      if(ccExpKey()!==key)break;
+      if(days===S.cc.days&&ccChain.length&&S.cc.expVerified==="chain"){ccExp.rows[days]={exp:S.cc.expiry,calls:ccChain};continue}
+      ccExp.rows[days]={status:"loading"};if(S.tab==="cc"&&S.cc.view==="exp")renderCC();
+      const f=nearestFriday(addDays(S.dataDate,days));let got=null;
+      try{for(const exp of ccTries(S.dataDate,days).slice(0,5)){if(diffDays(S.dataDate,exp)<5)continue;
+          setStatus("Comparing expiries: looking for the "+fdate(exp)+" chain…");
+          const c=await fetchCalls(S.ticker,S.dataDate,exp);if(c.length){got={exp,calls:mapCalls(c,S.dataDate,exp,"call",S.spot)};break}}}
+      catch(e){ccExp.rows[days]={status:"error",msg:errMsg(e)};continue}
+      markMiss("cc",days,!!got);
+      ccExp.rows[days]=got||{status:"none",exp:f};
+    }
+    setStatus("Expiry comparison loaded ("+fdate(S.dataDate)+" end-of-day chains).","ok");
+  }finally{ccExp.busy=false;ccDerived();if(S.tab==="cc"&&S.cc.view==="exp")renderCC()}
+}
+function ccExpRows(sel){
+  const tdel=ccDelta(sel)||0.3,n=ccN(),useQ=quoteSpotOk()&&!S.ivShift,live=ccExp.key===ccExpKey();
+  return CC_DAYS.map(days=>{
+    const row=live?ccExp.rows[days]:null;
+    let exp=row&&row.exp||ccTries(S.dataDate,days)[0],t=Math.max(1,diffDays(S.dataDate,exp)),T=t/365;
+    let pick=null,model=false,status=row?row.status:null;
+    if(row&&row.calls){
+      row.calls.forEach(c=>{if(!(c.mark>=0.05)||c.k<S.spot*0.9)return;const d=useQ&&c.delta>0?c.delta:bsDelta(S.spot,c.k,T,(c.iv*100+S.ivShift)/100,S.rate/100);
+        if(!pick||Math.abs(d-tdel)<Math.abs(pick.d-tdel))pick={k:c.k,mid:c.mark,d,q:liq({bid:c.bid,ask:c.ask,mid:c.mark,oi:c.oi})}});
+    }
+    if(!pick&&status!=="loading"){ // model at the same delta
+      model=true;const sig=ccSigma();let best=null;
+      for(let f=0.95;f<=1.6;f+=0.005){const k=ccRound(S.spot*f),d=bsDelta(S.spot,k,T,sig,S.rate/100);if(!best||Math.abs(d-tdel)<Math.abs(best.d-tdel))best={k,d}}
+      if(best)pick={k:best.k,d:best.d,mid:bs(S.spot,best.k,T,sig,S.rate/100),q:{cls:"",txt:"model"}};
+    }
+    const e=S.earn[S.ticker],earn=!!(e&&e>S.dataDate&&e<=exp);
+    if(pick){pick.perDay=pick.mid*100*n/t;pick.yld=pick.mid/S.spot*100*365/t}
+    return {days,exp,t,pick,model,status,earn,none:status==="none",cur:days===S.cc.days};
+  });
+}
+function ccExpChart(sel){
+  const live=ccExp.key===ccExpKey(),canFetch=S.loaded&&S.loaded.ticker===S.ticker;
+  if(canFetch&&(!live||CC_DAYS.some(d=>!ccExp.rows[d]))&&!ccExp.busy)setTimeout(ccExpLoad,0);
+  const rows=ccExpRows(sel),tdel=ccDelta(sel)||0.3;
+  const W=cw(),H=W<520?Math.round(W*0.85):340,m={l:W<520?50:60,r:12,t:44,b:50},iw=W-m.l-m.r,ih=H-m.t-m.b;
+  const ymax=Math.max(1,...rows.filter(r=>r.pick).map(r=>r.pick.perDay))*1.15;
+  const bw=iw/rows.length,sy=y=>m.t+(ymax-y)/ymax*ih;
+  let g="";
+  niceTicks(0,ymax,5).forEach(v=>{if(v<0)return;g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(v)}" y2="${sy(v)}" stroke="var(--grid)"/><text x="${m.l-6}" y="${sy(v)+4}" text-anchor="end">$${(v||0).toLocaleString("en-US")}</text>`});
+  rows.forEach((r,i)=>{
+    const x=m.l+i*bw+bw*0.18,w=bw*0.64,cx=m.l+i*bw+bw/2;
+    g+=`<g class="expbar" data-days="${r.days}" style="cursor:pointer">`;
+    g+=`<rect x="${m.l+i*bw}" y="${m.t-40}" width="${bw}" height="${ih+40+m.b}" fill="transparent"/>`;
+    if(r.status==="loading")g+=`<text x="${cx}" y="${sy(0)-8}" text-anchor="middle">loading…</text>`;
+    else if(r.pick){const y=sy(r.pick.perDay);
+      g+=`<rect x="${x}" y="${y}" width="${w}" height="${Math.max(1,sy(0)-y)}" rx="3" fill="var(--k0)" fill-opacity="${r.model?0.35:r.cur?1:0.75}" ${r.cur?'stroke="var(--ink)" stroke-width="2"':""}/>`;
+      const nar=W<520;g+=`<text x="${cx}" y="${y-(nar?7:20)}" text-anchor="middle" class="lab">$${fn(r.pick.perDay,r.pick.perDay<10?2:0)}${nar?"":"/day"}</text>${nar?"":`<text x="${cx}" y="${y-7}" text-anchor="middle">${fn(r.pick.yld,0)}%/yr</text>`}`;}
+    if(r.none)g+=`<text x="${cx}" y="${r.pick?(sy(r.pick.perDay)+sy(0))/2+8:sy(0)-12}" text-anchor="middle" style="font-size:24px">❌</text>`;
+    g+=`<text x="${cx}" y="${H-m.b+16}" text-anchor="middle" class="${r.cur?"lab":""}" style="${r.cur?"font-weight:700":""}">${r.days===365?(W<520?"1y":"1 year"):r.days+(W<520?"d":" days")}</text><text x="${cx}" y="${H-m.b+29}" text-anchor="middle">${esc(fdate(r.exp).replace(/, \d{4}$/,""))}${r.earn&&W>=520?" ⚡":""}</text>`;
+    g+=`</g>`;
+  });
+  g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(0)}" y2="${sy(0)}" stroke="var(--zero)" stroke-width="1.5"/>`;
+  g+=`<text transform="translate(12 ${m.t+ih/2}) rotate(-90)" text-anchor="middle">Premium per day</text>`;
+  const n=ccN();
+  const tbl=`<table><thead><tr><th>Expiry</th><th>Strike</th><th>Premium</th><th>Per day</th><th>% a year</th></tr></thead><tbody>${rows.map(r=>`<tr${r.cur?' style="font-weight:600"':""}><td>${esc(fdate(r.exp).replace(/, \d{4}$/,""))}${r.earn?" ⚡":""}${r.none?" ❌":""}<br><small style="color:var(--muted)">${r.t} days</small></td><td>${r.pick?"$"+fn(r.pick.k,r.pick.k%1?1:0)+`<br><small style="color:var(--muted)">Δ ${fn(r.pick.d,2)}</small>`:"–"}</td><td>${r.pick?fm(r.pick.mid*100*n):r.status==="loading"?"loading…":"–"}</td><td>${r.pick?"$"+fn(r.pick.perDay,2):"–"}</td><td>${r.pick?fn(r.pick.yld,1)+"%":"–"}${r.model&&r.pick?`<br><small style="color:var(--muted)">model</small>`:""}</td></tr>`).join("")}</tbody></table>`;
+  const note=!canFetch?"Model estimates at the same delta. Press Refresh to compare listed chains.":rows.some(r=>r.model&&r.status!=="loading")?"Faded bars are model estimates where no chain was found.":"From the "+fdate(S.dataDate)+" end-of-day chains.";
+  const anyEarn=rows.some(r=>r.earn);
+  const html=`<figure class="chart" id="ccFig" data-kind="exp"><figcaption>Which expiry pays best for the time? ${esc(S.ticker)}, ${n} call${n>1?"s":""}</figcaption>
+    <div class="capsub">For each expiry, the strike closest to your selected call's delta (${fn(tdel,2)}). Shorter expiries usually pay more per day but need rolling more often. ${note}${anyEarn?" ⚡ = earnings before expiry.":""} Tap a bar to switch to that expiry.</div>
+    <svg class="c" viewBox="0 0 ${W} ${H}" role="img" aria-label="Premium per day by expiry">${g}</svg><div class="readout">${tbl}</div></figure>`;
+  const wire=()=>{
+    $("ccFig").querySelectorAll(".expbar").forEach(el=>el.addEventListener("click",()=>{
+      const r=rows.find(x=>x.days===+el.dataset.days);if(!r||!r.pick)return;
+      const row=ccExp.key===ccExpKey()?ccExp.rows[r.days]:null;
+      S.cc.days=r.days;
+      if(row&&row.calls){S.cc.expiry=row.exp;ccChain=row.calls;S.cc.expVerified="chain";saveCcChain()}
+      else{S.cc.expiry=r.exp;ccChain=[];S.cc.expVerified="none"}
+      const s0=S.cc.strikes[0];s0.on=true;s0.strike=r.pick.k;ccFill(0);ccSync();save();render();
+    }));
+  };
+  return {html,wire};
+}
+
+/* ---------- wire up ---------- */
+buildStrikeRows();buildCcRows();syncInputs();ccSync();
+$("tabLeap").onclick=()=>{S.tab="leap";derived();save();render()};
+$("tabCC").onclick=()=>{S.tab="cc";derived();save();render()};
+$("tabPut").onclick=()=>{S.tab="put";derived();save();render();putAutoScan()};
+$("ccDays").addEventListener("click",e=>{const b=e.target.closest("button[data-days]");if(!b)return;
+  S.cc.days=+b.dataset.days;S.cc.expiry=ccTries(S.dataDate,S.cc.days)[0];S.cc.expVerified="none";ccChain=[];
+  S.cc.strikes.forEach((r,i)=>{if(r.strike>0)ccFill(i)});ccSync();save();schedule();ccRefetch()});
+document.querySelectorAll(".ccDeltaBtn").forEach(b=>b.onclick=()=>{
+  if(b.dataset.suggest){const sg=ccSuggestion();if(!sg){setStatus("No strike meets your limit for this expiry.","err");return}ccPickStrike(sg.c.k);return}
+  if(b.dataset.delta)ccSetByDelta([+b.dataset.delta]);else ccSetByPct([+b.dataset.pct],false);
+  ccSync();save();schedule()});
+[["cvPick","pick"],["cvHold","hold"],["cvExp","exp"]].forEach(([id,v])=>$(id).onclick=()=>{S.cc.view=v;ccDerived();save();render()});
+document.querySelector(".stack").addEventListener("input",onInput);
+document.querySelector(".stack").addEventListener("change",onInput);
+$("vPayoff").onclick=()=>{S.view="payoff";derived();save();render()};
+$("vTime").onclick=()=>{S.view="time";derived();save();render()};
+$("refresh").onclick=()=>refresh(true);
+$("reset").onclick=()=>{
+  if(S.tab==="put"){Object.assign(S.put,{days:30,maxAssign:20,hideThin:false,sort:{col:"ann",dir:-1},picks:{},open:null});putSaveList();putDerived();save();render();putAutoScan();setStatus("Put scanner back to the defaults: 30 days, 20% limit. Your watch list is kept.");return}
+  const tk=S.ticker,L=S.loaded&&S.loaded.ticker===tk?S.loaded:null;
+  if(!L&&tk!=="CRWD"){refresh();return}   // numbers on screen belong to another symbol: load this one first
+  if(S.tab==="cc"){
+    Object.assign(S.cc,{shares:100,mode:"option",pmcc:false});
+    if(!L){S.cc=Object.assign(DEF().cc,{view:S.cc.view,maxAssign:S.cc.maxAssign});ccChain=[];ccSync();save();render();setStatus("Covered calls back to the defaults (Oct 20 end-of-day data).");return}
+    if(S.cc.days===30&&ccChain.length){ccSetByPct([0,0.05,0.10],false);ccSync();save();render();setStatus("Covered calls back to the defaults: 30 days, at-the-money strike. Use the strike picker to compare others.");return}
+    S.cc.days=30;S.cc.expiry=nearestFriday(addDays(S.dataDate,30));S.cc.expVerified="none";ccChain=[];
+    ccSetByPct([0,0.05,0.10],false);ccSync();save();render();ccRefetch(true);return;
+  }
+  const keep={ticker:tk,tab:S.tab,basis:S.basis,earn:S.earn,earnSrc:S.earnSrc,earnLast:S.earnLast,sr:S.sr,srOn:S.srOn,cc:S.cc,loaded:S.loaded,latest:S.latest,miss:S.miss,contracts:S.contracts,rate:S.rate,put:S.put,favs:S.favs};
+  S=Object.assign(DEF(),keep);
+  if(L){
+    Object.assign(S,{spot:L.spot,dataDate:L.dataDate,high:L.high,expiry:L.expiry,months:L.months,expVerified:L.listed?"chain":"none"});
+    try{const c=JSON.parse(localStorage.getItem(KEY+"-chain")||"null");chain=(c&&c.ticker===tk&&c.expiry===L.expiry)?c.rows||[]:chain.length&&L.listed?chain:[]}catch(e){}
+    fitDefaults();syncInputs();save();render();
+    setStatus("LEAP back to defaults: at-the-money strike for "+tk+" at $"+fn(S.spot)+" ("+fdate(S.dataDate)+" close). Press Refresh for newer data.");
+  }else{
+    chain=[];syncInputs();save();render();setStatus("LEAP back to the at-the-money defaults (Oct 20 end-of-day data). Press Refresh for the latest.");
+  }
+};
+$("ticker").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("ticker").blur();refresh()}});   // a second call while one runs is ignored
+
+/* ---------- chart snapshots (PNG) ---------- */
+const SNAP_PROPS=["fill","stroke","stroke-width","stroke-dasharray","stroke-opacity","fill-opacity","opacity","stroke-linecap","stroke-linejoin","font-size","font-family","font-weight","text-anchor","dominant-baseline","display","visibility","paint-order"];
+function addSnaps(){
+  document.querySelectorAll("figure.chart").forEach(fig=>{
+    if(fig.querySelector(".snap")||!fig.querySelector("svg.c"))return;
+    const b=document.createElement("button");b.type="button";b.className="snap";b.textContent="\u{1F4F7} Save image";
+    b.setAttribute("aria-label","Save this chart as an image");
+    fig.insertBefore(b,fig.firstChild);
+  });
+}
+function wrapText(ctx,text,maxW){const words=text.split(/\s+/),lines=[];let cur="";
+  words.forEach(w=>{const t=cur?cur+" "+w:w;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w}else cur=t});if(cur)lines.push(cur);return lines}
+async function chartPng(fig){
+  const svg=fig.querySelector("svg.c"),vb=svg.viewBox.baseVal;
+  let bb={x:vb.x,y:vb.y,width:vb.width,height:vb.height};try{const g=svg.getBBox();if(g.width)bb=g}catch(e){}
+  const x0=Math.min(vb.x,Math.floor(bb.x))-4,y0=Math.min(vb.y,Math.floor(bb.y))-2,x1=Math.max(vb.x+vb.width,Math.ceil(bb.x+bb.width))+4,y1=Math.max(vb.y+vb.height,Math.ceil(bb.y+bb.height))+2;
+  const W=Math.max(x1-x0,340),H=y1-y0;
+  const clone=svg.cloneNode(true),src=[svg,...svg.querySelectorAll("*")],dst=[clone,...clone.querySelectorAll("*")];
+  src.forEach((el,k)=>{const cs=getComputedStyle(el);dst[k].setAttribute("style",SNAP_PROPS.map(p=>p+":"+cs.getPropertyValue(p)).join(";"))});
+  clone.querySelectorAll(".hov").forEach(e=>e.remove());
+  clone.setAttribute("xmlns","http://www.w3.org/2000/svg");clone.setAttribute("viewBox",`${x0} ${y0} ${W} ${H}`);clone.setAttribute("width",W);clone.setAttribute("height",H);
+  const img=new Image();
+  await new Promise((ok,bad)=>{img.onload=ok;img.onerror=()=>bad(new Error("render"));img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(new XMLSerializer().serializeToString(clone))});
+  const rs=getComputedStyle(fig),ink=getComputedStyle(document.body).color,muted=getComputedStyle(fig.querySelector(".legend")||fig).color;
+  const font=getComputedStyle(document.body).fontFamily,sc=2,pad=16;
+  const c=document.createElement("canvas"),ctx=c.getContext("2d");
+  ctx.font=`600 15px ${font}`;const cap=wrapText(ctx,(fig.querySelector("figcaption")||{}).textContent||"",W-2*pad);
+  ctx.font=`12px ${font}`;const sub=fig.querySelector(".capsub")?wrapText(ctx,fig.querySelector(".capsub").textContent,W-2*pad):[];
+  const leg=[...fig.querySelectorAll(".legend > span")].map(sp=>({color:getComputedStyle(sp).color,dash:(sp.querySelector("i")?getComputedStyle(sp.querySelector("i")).borderTopStyle:"solid"),text:sp.textContent.trim()})).filter(l=>l.text);
+  let lx=pad,lrows=leg.length?1:0;leg.forEach(l=>{const w=26+ctx.measureText(l.text).width+16;if(lx+w>W-pad&&lx>pad){lrows++;lx=pad}lx+=w});
+  ctx.font=`11px ${font}`;const foot=wrapText(ctx,`Options Scenario Lab · ${S.ticker} end-of-day data as of ${S.dataDate} · Alpha Vantage · model estimates, not advice`,W-2*pad);ctx.font=`12px ${font}`;
+  const headH=pad+cap.length*20+sub.length*16+lrows*18+6,footH=foot.length*14+12;
+  c.width=W*sc;c.height=(headH+H+footH)*sc;ctx.scale(sc,sc);
+  ctx.fillStyle=rs.backgroundColor||"#fff";ctx.fillRect(0,0,W,headH+H+footH);
+  let y=pad;ctx.textBaseline="top";
+  ctx.fillStyle=ink;ctx.font=`600 15px ${font}`;cap.forEach(t=>{ctx.fillText(t,pad,y);y+=20});
+  ctx.fillStyle=muted;ctx.font=`12px ${font}`;sub.forEach(t=>{ctx.fillText(t,pad,y);y+=16});
+  lx=pad;leg.forEach(l=>{const w=26+ctx.measureText(l.text).width+16;if(lx+w>W-pad&&lx>pad){y+=18;lx=pad}
+    ctx.strokeStyle=l.color;ctx.lineWidth=3;ctx.setLineDash(l.dash==="dashed"?[5,3]:l.dash==="dotted"?[2,3]:[]);ctx.beginPath();ctx.moveTo(lx,y+7);ctx.lineTo(lx+18,y+7);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=muted;ctx.fillText(l.text,lx+24,y);lx+=w});
+  ctx.drawImage(img,0,headH,W,H);
+  ctx.fillStyle=muted;ctx.font=`11px ${font}`;ctx.textBaseline="alphabetic";
+  foot.forEach((t,k)=>ctx.fillText(t,pad,headH+H+16+k*14));
+  return await new Promise((ok,bad)=>c.toBlob(b=>b?ok(b):bad(new Error("png")),"image/png"));
+}
+async function saveSnap(fig,btn){
+  const old=btn.textContent;btn.disabled=true;btn.textContent="Saving…";
+  try{
+    const blob=await chartPng(fig);
+    const kind={pick:"covered-call-strikes",hold:"covered-call-vs-holding",exp:"covered-call-expiries",time:"leap-return",pay:"leap-payoff"}[fig.dataset.kind];
+    const name=fig.dataset.kind==="put"?`${(S.put.open||"put").toLowerCase()}-put-strikes-${S.put.days}d.png`:`${S.ticker.toLowerCase()}-${kind||"chart"}${fig.dataset.ci!=null?"-"+(+fig.dataset.ci+1):""}-${S.dataDate}.png`;
+    const file=typeof File==="function"?new File([blob],name,{type:"image/png"}):null;
+    const touch=matchMedia("(pointer:coarse)").matches;
+    if(touch&&file&&navigator.canShare&&navigator.canShare({files:[file]})){
+      try{await navigator.share({files:[file],title:name});setStatus("Image ready. Choose “Save Image” in the share sheet to put it in Photos.","ok");return}
+      catch(e){if(e&&e.name==="AbortError")return}
+    }
+    const dl=await claude.use("downloads").catch(()=>null);
+    if(!dl){setStatus("Saving images isn’t available in this view.","err");return}
+    try{await dl.save({filename:name,data:blob});setStatus(touch?"Image saved to your downloads. On iPhone, open it in Files and tap Share → Save Image to add it to Photos.":"Image saved.","ok")}
+    catch(e){if(e&&e.code!=="declined")setStatus("Couldn’t save the image ("+(e&&e.code||"error")+").","err")}
+  }catch(e){setStatus("Couldn’t draw the image.","err")}
+  finally{btn.disabled=false;btn.textContent=old}
+}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest(".snap");if(b){e.preventDefault();e.stopPropagation();saveSnap(b.closest("figure.chart"),b)}},true);
+new MutationObserver(addSnaps).observe(document.body,{childList:true,subtree:true});
+
+/* ---------- sell puts: watch list scanner ---------- */
+function putSaveRes(){try{const keep={};Object.entries(putRes).forEach(([k,v])=>{if(v&&v.status!=="loading")keep[k]=v});localStorage.setItem(KEY+"-puts",JSON.stringify(keep))}catch(e){}}
+function putSaveList(){
+  try{localStorage.setItem(KEY+"-watch",JSON.stringify(S.put.tickers))}catch(e){}
+  if(putDb)putDb.set({tickers:S.put.tickers,days:S.put.days,maxAssign:S.put.maxAssign,hideThin:!!S.put.hideThin,updated:new Date().toISOString()}).catch(()=>{});
+}
+(async()=>{ // keep the watch list with your account too, so it follows you to other devices
+  try{const db=await claude.use("db"),user=await claude.use("user");if(!db||!user)return;
+    const id=await user.id();if(!id)return;
+    favDb=db.collection("data/users/"+id).doc("favorites");
+    try{const fs=await favDb.get();if(fs.exists){const d=fs.data()||{};if(Array.isArray(d.leap)&&Array.isArray(d.cc)){const cl=a=>a.map(x=>String(x).toUpperCase()).slice(0,40);S.favs={leap:cl(d.leap),cc:cl(d.cc)};try{localStorage.setItem(KEY+"-favs",JSON.stringify(S.favs))}catch(e){}save();favRender()}}else favSave()}catch(e){}
+    basisDb=db.collection("data/users/"+id).doc("costBasis");
+    try{const bs0=await basisDb.get(),m=(bs0.exists&&(bs0.data()||{}).map)||{};   // account copy wins; local-only entries are pushed up
+      let push=false;Object.keys(m).forEach(t=>{const v=+m[t];if(v>0)S.basis[t]=v});
+      Object.keys(S.basis).forEach(t=>{if(!(+m[t]>0))push=true});
+      save();if(push)basisSave();ccSync();if(S.tab==="cc")render()}catch(e){}
+    putDb=db.collection("data/users/"+id).doc("putWatch");
+    const snap=await putDb.get();
+    if(snap.exists){const d=snap.data()||{};if(Array.isArray(d.tickers)&&d.tickers.length){S.put.tickers=d.tickers.map(t=>String(t).toUpperCase()).slice(0,60)}
+      if(d.days)S.put.days=+d.days;if(d.maxAssign)S.put.maxAssign=+d.maxAssign;S.put.hideThin=!!d.hideThin;
+      try{localStorage.setItem(KEY+"-watch",JSON.stringify(S.put.tickers))}catch(e){}
+      putDerived();save();if(S.tab==="put")render();}
+    else putSaveList();
+    $("putSaveNote").textContent="Your list is saved to your account, so it's here next time, on any device.";
+  }catch(e){}
+})();
+function putDerived(){
+  if(!$("putList"))return;
+  $("putList").innerHTML=S.put.tickers.map(t=>`<span>${esc(t)}<button type="button" data-rm="${esc(t)}" aria-label="Remove ${esc(t)}">×</button></span>`).join("")||`<span style="padding:6px 12px;font-weight:400;color:var(--muted)">Empty. Add a symbol below.</span>`;
+  $("putDays").querySelectorAll("button").forEach(b=>{const d=+b.dataset.days,none=S.put.tickers.length&&S.put.tickers.every(t=>{const r=putRes[t+"|"+d];return r&&r.status==="nochain"});
+    b.setAttribute("aria-pressed",d===S.put.days);b.classList.toggle("nochain",none)});
+  $("putMaxA").value=S.put.maxAssign;$("putHideThin").checked=!!S.put.hideThin;
+  $("putScan").disabled=putScanning;$("putScan").textContent=putScanning?"Scanning…":"Scan the watch list";
+}
+async function putFetchOne(sym,days){
+  const key=sym+"|"+days;
+  putRes[key]={status:"loading"};renderPutSoon();
+  try{
+    const dp=payloadOf(await call("TIME_SERIES_DAILY",{symbol:sym,outputsize:"compact",datatype:"json"}));
+    const ts=dp&&dp["Time Series (Daily)"];
+    if(!ts)throw {code:"tool_error",message:(dp&&(dp["Error Message"]?"Alpha Vantage doesn't recognise "+sym+".":dp.Information||dp.Note))||"No price data returned for "+sym};
+    const dates=Object.keys(ts).sort().reverse();
+    let lv=[];try{const sr=computeSR(ts,false);if(sr)lv=sr.levels.map(({p,side,label})=>({p,side,label}))}catch(e){}
+    let found=null;
+    for(const [di,offs] of [[0,[0,7,-7,14,-14]],[1,[0]]]){const d=dates[di];if(!d)continue;
+      const f=nearestFriday(addDays(d,days));
+      for(const off of offs){const exp=addDays(f,off);if(diffDays(d,exp)<5)continue;
+        const rows=await fetchOpt(sym,d,exp,"put");if(rows.length){found={d,exp,rows};break}}
+      if(found)break}
+    let earn=null;
+    try{const er=payloadOf(await call("EARNINGS_CALENDAR",{symbol:sym,horizon:"3month"}));
+      const csv=typeof er==="string"?er:(er&&(er.result||er.data))||"";
+      const lines=String(csv).trim().split(/\r?\n/),hdr=(lines.shift()||"").split(","),ci=hdr.indexOf("reportDate");
+      earn=(ci<0?[]:lines.map(l=>l.split(",")[ci]).filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)&&x>=dates[0]).sort())[0]||null;
+    }catch(e){}
+    const date=found?found.d:dates[0],spot=parseFloat(ts[date]["4. close"]);
+    const lastDate=dates[0],lastClose=parseFloat(ts[lastDate]["4. close"]);
+    putRes[key]=found?{status:"ok",sym,days,date,spot,lastDate,lastClose,exp:found.exp,rows:mapCalls(found.rows,found.d,found.exp,"put",spot).filter(c=>c.k>=spot*0.5&&c.k<=spot*1.05),levels:lv,earn,at:Date.now()}
+                     :{status:"nochain",sym,days,date,spot,exp:nearestFriday(addDays(date,days)),levels:lv,earn,at:Date.now()};
+  }catch(e){
+    putRes[key]={status:"error",msg:errMsg(e),at:Date.now()};
+    if(["needs_reauth","server_not_connected","selection_required","not_in_manifest","consent_required","approval_required","blocked_by_policy"].includes(e&&e.code))throw e;
+  }
+  putSaveRes();renderPutSoon();
+}
+async function fetchOpt(sym,d,exp,type){return (await fetchChain(sym,d,exp)).filter(c=>c.type===type)}
+async function putScan(list){
+  if(!mcp)mcp=await claude.use("mcp").catch(()=>null);
+  if(!mcp){setStatus("Scanning needs the Alpha Vantage connector. Open the page in claude.ai with Alpha Vantage connected.","err");return}
+  list.forEach(t=>{if(!putQueue.includes(t))putQueue.push(t)});
+  if(putScanning)return;
+  putScanning=true;putDerived();
+  let done=0;const used0=avTotal;greeksModel=false;
+  try{
+    while(putQueue.length){
+      const sym=putQueue.shift(),total=done+putQueue.length+1;
+      avCtx=`Scanning ${sym} (${done+1} of ${total}).`;
+      const days=S.put.days;   // read each time, so a new expiry chosen mid-scan applies to the rest
+      setStatus(`Scanning ${sym} for ${days}-day puts (${done+1} of ${total})…`);
+      await putFetchOne(sym,days);done++;
+    }
+    const days=S.put.days,bad=S.put.tickers.filter(t=>{const r=putRes[t+"|"+days];return r&&r.status!=="ok"});
+    setStatus(`Scan done: ${done} symbol${done>1?"s":""}, ${days}-day puts, end-of-day data, ${avTotal-used0} Alpha Vantage calls.`+(greeksModel?" Alpha Vantage sent no implied volatility or delta, so deltas are calculated from the quoted prices.":"")+(bad.length?" No usable chain for "+bad.join(", ")+".":""),bad.length?"err":"ok");
+  }catch(e){putQueue=[];setStatus(errMsg(e),"err")}
+  finally{avCtx="";putScanning=false;putDerived();renderPutSoon()}
+}
+function putAutoScan(){ // scan only symbols with no result yet for this expiry
+  const miss=S.put.tickers.filter(t=>{const r=putRes[t+"|"+S.put.days];return !r||r.status==="loading"||putStale(r)});
+  if(miss.length)putScan(miss);
+}
+function putStale(r){ // same rule as prices: refetch when a newer close could exist (at most every 30 minutes), or after 24 hours
+  const age=Date.now()-(r.at||0);if(age>MAXAGE_MS)return true;
+  const behind=r.status!=="ok"||!r.lastDate||r.lastDate<nySession()||r.date<r.lastDate;return behind&&age>=RECHECK_MS}
+function renderPutSoon(){if(S.tab!=="put")return;clearTimeout(putTimer);putTimer=setTimeout(renderPut,60)}
+
+function putEval(res,sym){
+  const t=Math.max(1,diffDays(res.date,res.exp)),T=t/365,tgt=S.put.maxAssign/100;
+  let atm=null;res.rows.forEach(c=>{if(!atm||Math.abs(c.k-res.spot)<Math.abs(atm.k-res.spot))atm=c});
+  const sig=atm?atm.iv:0.4,emLo=res.spot*(1-sig*Math.sqrt(T));
+  const sup=(res.levels||[]).filter(l=>l.side==="S"&&l.p<res.spot).sort((a,b)=>b.p-a.p)[0]||null;
+  const cands=res.rows.filter(c=>c.k<=res.spot*1.0&&c.mark>=0.05).map(c=>{
+    const d=c.delta<0||c.delta>0?Math.abs(c.delta):Math.abs(bsDelta(res.spot,c.k,T,c.iv,S.rate/100)-1);
+    const q=liq({bid:c.bid,ask:c.ask,mid:c.mark,oi:c.oi});
+    const per=c.mark/c.k*100;
+    return {k:c.k,mid:c.mark,bid:c.bid,ask:c.ask,oi:c.oi,vol:c.vol,iv:c.iv,d,q,per,ann:per*365/t,cush:(res.spot-(c.k-c.mark))/res.spot*100,be:c.k-c.mark};
+  }).filter(c=>c.d>0.005).sort((a,b)=>a.k-b.k);
+  const liqOk=c=>c.q.cls!=="poor";
+  const tiers=[c=>c.d<=tgt&&liqOk(c)].concat(S.put.hideThin?[]:[c=>c.d<=tgt]);
+  let sug=null,tier=-1;
+  for(let i=0;i<tiers.length;i++){const pool=cands.filter(tiers[i]);if(pool.length){sug=pool.reduce((a,b)=>b.ann>a.ann?b:a);tier=i;break}}
+  const pk=S.put.picks[sym+"|"+S.put.days],picked=pk!=null?cands.find(c=>Math.abs(c.k-pk)<0.001):null;
+  return {t,sig,emLo,sup,cands,sug,tier,c:picked||sug,picked:!!picked};
+}
+function putRows(){
+  return S.put.tickers.map(sym=>{
+    const res=putRes[sym+"|"+S.put.days];
+    if(!res)return {sym,status:"none"};
+    if(res.status!=="ok")return {sym,status:res.status,msg:res.msg,spot:res.spot,exp:res.exp};
+    const ev=putEval(res,sym);
+    return Object.assign({sym,status:"ok",spot:res.spot,lastDate:res.lastDate,lastClose:res.lastClose,date:res.date,exp:res.exp,earn:res.earn,earnIn:!!(res.earn&&res.earn<=res.exp)},ev);
+  });
+}
+const PUT_COLS=[
+  {id:"sym",h:"Ticker",v:o=>o.sym},
+  {id:"spot",h:"Price",v:o=>o.spot},
+  {id:"k",h:"Strike",v:o=>o.c&&o.c.k},
+  {id:"d",h:"Chance assigned",v:o=>o.c&&o.c.d},
+  {id:"mid",h:"Premium",v:o=>o.c&&o.c.mid},
+  {id:"per",h:"Return",v:o=>o.c&&o.c.per},
+  {id:"ann",h:"% a year",v:o=>o.c&&o.c.ann},
+  {id:"cush",h:"Cushion",v:o=>o.c&&o.c.cush},
+  {id:"be",h:"Break-even",v:o=>o.c&&o.c.be},
+  {id:"sp",h:"Spread",v:o=>o.c&&o.c.q.sp},
+  {id:"oi",h:"Open int.",v:o=>o.c&&o.c.oi},
+  {id:"earn",h:"Earnings",v:o=>o.status==="ok"?(o.earnIn?1:0):null},
+  {id:"exp",h:"Expiry",v:o=>o.exp}];
+function putCell(id,o){
+  const c=o.c;
+  switch(id){
+    case "sym":return `<b>${esc(o.sym)}</b>`;
+    case "spot":return o.spot?(o.lastDate&&o.date&&o.lastDate>o.date?`$${fn(o.spot)}<small style="color:var(--loss)">⚠ ${esc(fdate(o.date).replace(/, \d{4}$/,""))}; now $${fn(o.lastClose)}</small>`:"$"+fn(o.spot)):"–";
+    case "k":return `$${fn(c.k,c.k%1?1:0)}${o.picked?" ✎":""}<small>${fp((c.k/o.spot-1)*100)}</small>`;
+    case "d":return `${fn(c.d*100,0)}%<small>Δ −${fn(c.d,2)}</small>`;
+    case "mid":return `${fm(c.mid*100)}<small>${c.bid>=0&&c.ask>0?fn(c.bid)+" / "+fn(c.ask):"no quote"}</small>`;
+    case "per":return fn(c.per,2)+"%<small>"+o.t+" days</small>";
+    case "ann":return `<b>${fn(c.ann,1)}%</b>`;
+    case "cush":return fn(c.cush,1)+"%";
+    case "be":return "$"+fn(c.be);
+    case "sp":return c.q.cls?`<span class="pill ${c.q.cls}">${c.q.txt}</span><small>${fn(c.q.sp,0)}% spread</small>`:"no quote";
+    case "oi":return (c.oi||0).toLocaleString();
+    case "earn":return o.earnIn?`⚡ ${esc(fdate(o.earn).replace(/, \d{4}$/,""))}`:(o.earn?`<small>after: ${esc(fdate(o.earn).replace(/, \d{4}$/,""))}</small>`:"–");
+    case "exp":return `${esc(fdate(o.exp).replace(/, \d{4}$/,""))}<small>${o.t} days</small>`;
+  }
+}
+function renderPut(){
+  const main=$("putMain");if(!main)return;
+  if(!S.put.tickers.length){main.innerHTML=`<div class="empty">Add a few symbols to your watch list to compare puts.</div>`;return}
+  const rows=putRows(),{col,dir}=S.put.sort,cdef=PUT_COLS.find(c=>c.id===col)||PUT_COLS[6];
+  const val=o=>{if(o.status!=="ok"||(!o.c&&col!=="sym"&&col!=="spot"&&col!=="exp"&&col!=="earn"))return null;return cdef.v(o)};
+  rows.sort((a,b)=>{const x=val(a),y=val(b);if(x==null&&y==null)return a.sym.localeCompare(b.sym);if(x==null)return 1;if(y==null)return -1;return (typeof x==="string"?x.localeCompare(y):x-y)*dir});
+  const head=`<tr>${PUT_COLS.map(c=>`<th scope="col"><button type="button" data-sort="${c.id}"${c.id===col?` aria-sort="${dir>0?"ascending":"descending"}"`:""}>${c.h}${c.id===col?(dir>0?" ▲":" ▼"):""}</button></th>`).join("")}</tr>`;
+  const body=rows.map(o=>{
+    const open=S.put.open===o.sym?' class="open"':"";
+    if(o.status==="ok"&&o.c)return `<tr data-sym="${esc(o.sym)}"${open}>${PUT_COLS.map(c=>`<td>${putCell(c.id,o)}</td>`).join("")}</tr>`;
+    const msg=o.status==="loading"?"Loading…":o.status==="none"?"Not scanned yet":o.status==="nochain"?`❌ No put chain near ${S.put.days} days`:o.status==="error"?esc(o.msg||"Couldn't load"):`No put under your ${S.put.maxAssign}% limit${S.put.hideThin?" with a liquid market":""}`;
+    return `<tr data-sym="${esc(o.sym)}"${open}><td><b>${esc(o.sym)}</b></td><td>${o.spot?"$"+fn(o.spot):"–"}</td><td colspan="${PUT_COLS.length-2}" style="text-align:left;color:var(--muted);font-family:var(--font-ui)">${msg}</td></tr>`;
+  }).join("");
+  const ok=rows.filter(o=>o.status==="ok");
+  const dates=[...new Set(ok.map(o=>o.date))];
+  const lag=ok.filter(o=>o.lastDate&&o.lastDate>o.date);
+  let html=lag.length?`<div class="banner"><b>⚠ ${lag.map(o=>esc(o.sym)).join(", ")}: options are one session behind.</b> Alpha Vantage hasn't published ${esc(fdate(lag[0].lastDate))} options yet, so ${lag.length>1?"these rows use":"this row uses"} the ${esc(fdate(lag[0].date))} chain and the price from that day (${lag.map(o=>`${esc(o.sym)} $${fn(o.spot)}, now $${fn(o.lastClose)}, ${fp((o.lastClose/o.spot-1)*100)}`).join("; ")}). Scan again later for the newer chain.</div>`:"";
+  html+=`<div class="capsub" style="margin:0">For each symbol, the liquid put that pays the most a year while staying under your ${S.put.maxAssign}% chance of assignment. The chart for each symbol shows where support and the expected move sit. Return is on the cash set aside (strike × 100). Tap a column to sort, or a row to see every strike.${dates.length?" End-of-day data from "+dates.map(fdate).join(", ")+".":""}</div>
+    <div class="ptbl"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+  const op=rows.find(o=>o.sym===S.put.open&&o.status==="ok");
+  const chart=op?putPickChart(op):null;
+  if(chart)html+=chart.html;
+  main.innerHTML=html;
+  main.querySelectorAll("th button[data-sort]").forEach(b=>b.onclick=()=>{const id=b.dataset.sort;
+    S.put.sort=S.put.sort.col===id?{col:id,dir:-S.put.sort.dir}:{col:id,dir:["sym","d","sp","be","exp","earn","k"].includes(id)?1:-1};save();renderPut()});
+  main.querySelectorAll("tbody tr[data-sym]").forEach(tr=>tr.onclick=()=>{const s=tr.dataset.sym;S.put.open=S.put.open===s?null:s;save();renderPut();
+    if(S.put.open){const f=$("putFig");if(f)f.scrollIntoView({behavior:"smooth",block:"nearest"})}});
+  chart&&chart.wire&&chart.wire();
+}
+function putPickChart(o){
+  const vis=o.cands.filter(c=>c.d<=Math.max(0.6,S.put.maxAssign/100+0.1));
+  if(!vis.length)return null;
+  const tgt=S.put.maxAssign/100,W=cw(),H=W<520?Math.round(W*0.9):360,m={l:W<520?46:56,r:14,t:26,b:44},iw=W-m.l-m.r,ih=H-m.t-m.b;
+  const xmax=Math.min(0.75,Math.max(tgt+0.1,...vis.map(c=>c.d)))+0.02,ymax=Math.max(1,...vis.map(c=>c.ann))*1.12;
+  const sx=d=>m.l+d/xmax*iw,sy=y=>m.t+(ymax-y)/ymax*ih;
+  let g="";
+  niceTicks(0,ymax,5).forEach(v=>{if(v<0)return;g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(v)}" y2="${sy(v)}" stroke="var(--grid)"/><text x="${m.l-6}" y="${sy(v)+4}" text-anchor="end">${v}%</text>`});
+  niceTicks(0,xmax*100,W<520?4:7).forEach(v=>{if(v<0||v/100>xmax)return;g+=`<line y1="${m.t}" y2="${H-m.b}" x1="${sx(v/100)}" x2="${sx(v/100)}" stroke="var(--grid)"/><text x="${sx(v/100)}" y="${H-m.b+16}" text-anchor="middle">${v}%</text>`});
+  g+=`<rect x="${sx(tgt)}" y="${m.t}" width="${Math.max(0,W-m.r-sx(tgt))}" height="${ih}" fill="var(--loss)" fill-opacity=".07"/>`;
+  g+=`<line x1="${sx(tgt)}" x2="${sx(tgt)}" y1="${m.t-6}" y2="${H-m.b}" stroke="var(--loss)" stroke-width="1.5" stroke-dasharray="4 3"/><text x="${sx(tgt)+4}" y="${m.t-10}" style="fill:var(--loss)">Your limit ${Math.round(tgt*100)}%</text>`;
+  const emc=[...vis].reverse().find(c=>c.k<=o.emLo);
+  if(emc)g+=`<line x1="${sx(emc.d)}" x2="${sx(emc.d)}" y1="${m.t}" y2="${H-m.b}" stroke="var(--accent)" stroke-opacity=".7" stroke-dasharray="2 3" stroke-width="1.5"/>`;
+  const step=Math.max(1,Math.ceil(vis.length/(W<520?6:10)));
+  vis.forEach((c,i)=>{const x=sx(c.d),y=sy(c.ann),isSel=o.c&&c.k===o.c.k,isSug=o.sug&&c.k===o.sug.k,hollow=c.q.cls==="poor",op=c.q.cls==="good"?1:c.q.cls==="fair"?0.75:0.35;
+    const sup=o.sup&&c.k<=o.sup.p&&!vis.some(v=>v.k>c.k&&v.k<=o.sup.p);
+    if(isSug)g+=`<circle cx="${x}" cy="${y}" r="11" fill="var(--gain)" fill-opacity=".18" stroke="var(--gain)" stroke-width="2"/>`;
+    g+=`<circle cx="${x}" cy="${y}" r="${isSel?6.5:5}" fill="${hollow?"var(--panel)":"var(--k1)"}" fill-opacity="${hollow?1:op}" stroke="var(--k1)" stroke-width="${hollow?1.5:isSel?2.5:0}"/>`;
+    if(isSel)g+=`<circle cx="${x}" cy="${y}" r="10" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`;
+    if(isSel||isSug||i%step===0||sup)g+=`<text x="${x}" y="${y-(isSel||isSug?15:9)}" text-anchor="middle" class="${isSel||isSug?"lab":""}" style="${isSug?"fill:var(--gain);font-weight:600":""}">$${fn(c.k,c.k%1?1:0)}${isSug?" suggested":""}${sup?" · S":""}</text>`});
+  g+=`<text x="${m.l+iw/2}" y="${H-4}" text-anchor="middle">Chance of being assigned (put delta)</text><text transform="translate(12 ${m.t+ih/2}) rotate(-90)" text-anchor="middle">Return, % a year</text>`;
+  g+=`<g class="hov" style="display:none"><circle r="8" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="2 2"/></g>`;
+  const legend=`<span style="color:var(--k1)"><i style="border-top-width:6px;width:8px;border-radius:4px"></i><span style="color:var(--muted)">Liquid (solid) to thin (hollow)</span></span><span style="color:var(--gain)"><i></i><span style="color:var(--muted)">Suggested</span></span><span style="color:var(--loss)"><i style="border-top-style:dashed"></i><span style="color:var(--muted)">Your limit</span></span>`+(emc?`<span style="color:var(--accent)"><i style="border-top-style:dotted"></i><span style="color:var(--muted)">Expected move edge ($${fn(o.emLo,0)}); dots left of it are outside</span></span>`:"")+(o.sup?`<span style="color:var(--muted)"><span>S = first strike below support $${fn(o.sup.p,0)}</span></span>`:"");
+  const why=[];if(o.sug){const c=o.sug;why.push(`${fn(c.d*100,0)}% chance of assignment`,`${fm(c.mid*100)} premium (${fn(c.ann,1)}% a year on ${fm(c.k*100)} set aside)`,`${fn(c.cush,1)}% cushion`);
+    if(c.q.cls)why.push(c.q.txt.toLowerCase()+" market");if(o.sup)why.push(c.k<=o.sup.p?"below support $"+fn(o.sup.p,0):"above support $"+fn(o.sup.p,0));why.push(c.k<=o.emLo?"outside the expected move":"inside the expected move")}
+  const relax=o.tier>0?" No liquid strike fits, so this one is thin.":"";
+  const html=`<figure class="chart" id="putFig" data-kind="put"><figcaption>${esc(o.sym)} puts expiring ${esc(fdate(o.exp))} (${o.t} days) · stock $${fn(o.spot)}</figcaption>
+    <div class="capsub">${o.sug?`<b>Suggested: $${fn(o.sug.k)} put.</b> ${why.join(", ")}.${relax}`:"No put meets your limit."}${o.earnIn?` ⚡ Earnings ${esc(fdate(o.earn))} fall before expiry.`:""} Tap a dot to use that strike in the table. Not advice.</div>
+    <div class="legend">${legend}</div>
+    <svg class="c" viewBox="0 0 ${W} ${H}" role="img" aria-label="Annual return against chance of assignment for each put strike">${g}</svg><div class="readout"></div>
+    ${o.picked?`<div class="btnrow" style="margin-top:6px"><button type="button" id="putUnpick">Go back to the suggested strike</button></div>`:""}</figure>`;
+  const wire=()=>{
+    const fig=$("putFig"),svg=fig.querySelector("svg"),el=fig.querySelector(".readout"),hov=svg.querySelector(".hov"),ci=hov.querySelector("circle");
+    const show=c=>{ci.setAttribute("cx",sx(c.d));ci.setAttribute("cy",sy(c.ann));hov.style.display="";
+      const rows=[["Premium",`${fm(c.mid*100)} a contract`+(c.bid>=0&&c.ask>0?` (bid ${fn(c.bid)} / ask ${fn(c.ask)})`:"")],["Chance of being assigned",fn(c.d*100,0)+"%"+(c.d>tgt?" (over your limit)":"")],
+        ["Return on cash set aside",`${fn(c.per,2)}% for ${o.t} days, ${fn(c.ann,1)}% a year`],["Cushion before a loss",`${fn(c.cush,1)}% (break-even $${fn(c.be)})`],["Liquidity",c.q.cls?`<span class="pill ${c.q.cls}">${c.q.txt}</span> ${fn(c.q.sp,0)}% spread, OI ${(c.oi||0).toLocaleString()}`:"no quote"]];
+      el.innerHTML=`<table><caption>$${fn(c.k)} put</caption><tbody>${rows.map(([a,b])=>`<tr><td style="white-space:normal">${a}</td><td style="text-align:right;white-space:normal">${b}</td></tr>`).join("")}</tbody></table>`};
+    const near=ev=>{const rect=svg.getBoundingClientRect(),px=(ev.clientX-rect.left)/rect.width*W,py=(ev.clientY-rect.top)/rect.height*H;let b=null,bd=1e9;vis.forEach(c=>{const d=Math.hypot(sx(c.d)-px,sy(c.ann)-py);if(d<bd){bd=d;b=c}});return {c:b,d:bd}};
+    svg.addEventListener("pointermove",ev=>{const n=near(ev);if(n.c)show(n.c)});
+    svg.addEventListener("click",ev=>{const n=near(ev);if(n.c&&n.d<40){S.put.picks[o.sym+"|"+S.put.days]=n.c.k;save();renderPut()}});
+    const ub=$("putUnpick");if(ub)ub.onclick=()=>{delete S.put.picks[o.sym+"|"+S.put.days];save();renderPut()};
+    show(o.c||vis[0]);
+  };
+  return {html,wire};
+}
+function putAdd(){
+  const raw=$("putAdd").value.toUpperCase().split(/[\s,;]+/).map(t=>t.replace(/[^A-Z0-9.\-]/g,"")).filter(Boolean);
+  const add=raw.filter(t=>!S.put.tickers.includes(t));if(!raw.length)return;
+  S.put.tickers=S.put.tickers.concat(add).slice(0,60);$("putAdd").value="";
+  putSaveList();putDerived();save();renderPut();if(add.length)putScan(add);
+}
+$("putAddBtn").onclick=putAdd;
+$("putAdd").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();putAdd()}});
+$("putList").addEventListener("click",e=>{const b=e.target.closest("button[data-rm]");if(!b)return;const t=b.dataset.rm;
+  S.put.tickers=S.put.tickers.filter(x=>x!==t);putQueue=putQueue.filter(x=>x!==t);if(S.put.open===t)S.put.open=null;putSaveList();putDerived();save();renderPut()});
+$("putDays").addEventListener("click",e=>{const b=e.target.closest("button[data-days]");if(!b)return;S.put.days=+b.dataset.days;putQueue=[];putSaveList();putDerived();save();renderPut();putAutoScan()});
+$("putMaxA").onchange=()=>{S.put.maxAssign=+$("putMaxA").value||20;S.put.picks={};putSaveList();save();renderPut()};
+$("putHideThin").onchange=()=>{S.put.hideThin=$("putHideThin").checked;putSaveList();save();renderPut()};
+$("putScan").onclick=()=>putScan(S.put.tickers.slice());
+
+
+/* ---------- covered calls: scan the saved list ---------- */
+let ccRes={};try{const o=JSON.parse(localStorage.getItem(KEY+"-ccscan")||"null");if(o&&typeof o==="object")ccRes=o}catch(e){}
+let ccScanning=false,ccScanT=null;
+function ccScanSave(){try{const keep={};Object.entries(ccRes).forEach(([k,v])=>{if(v&&v.status!=="loading")keep[k]=v});localStorage.setItem(KEY+"-ccscan",JSON.stringify(keep))}catch(e){}}
+function ccScanRender(){if(S.tab!=="cc")return;clearTimeout(ccScanT);ccScanT=setTimeout(renderCC,80)}
+async function ccScanOne(sym,days){
+  const key=sym+"|"+days;ccRes[key]={status:"loading"};ccScanRender();
+  try{
+    const dp=payloadOf(await call("TIME_SERIES_DAILY",{symbol:sym,outputsize:"compact",datatype:"json"}));
+    const ts=dp&&dp["Time Series (Daily)"];
+    if(!ts)throw {code:"tool_error",message:(dp&&(dp["Error Message"]?"Alpha Vantage doesn't recognise "+sym+".":dp.Information||dp.Note))||"No price data returned for "+sym};
+    const dates=Object.keys(ts).sort().reverse();
+    let found=null;
+    for(const di of [0,1]){const d=dates[di];if(!d)continue;
+      for(const exp of ccTries(d,days).slice(0,di?1:5)){if(diffDays(d,exp)<5)continue;
+        const rows=await fetchOpt(sym,d,exp,"call");if(rows.length){found={d,exp,rows};break}}
+      if(found)break}
+    let earn=null;
+    try{const er=payloadOf(await call("EARNINGS_CALENDAR",{symbol:sym,horizon:"12month"}));
+      const csv=typeof er==="string"?er:(er&&(er.result||er.data))||"";
+      const lines=String(csv).trim().split(/\r?\n/),hdr=(lines.shift()||"").split(","),ci=hdr.indexOf("reportDate");
+      earn=(ci<0?[]:lines.map(l=>l.split(",")[ci]).filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)&&x>=dates[0]).sort())[0]||null;
+    }catch(e){}
+    const date=found?found.d:dates[0],spot=parseFloat(ts[date]["4. close"]),lastDate=dates[0],lastClose=parseFloat(ts[lastDate]["4. close"]);
+    ccRes[key]=found?{status:"ok",sym,days,date,spot,lastDate,lastClose,exp:found.exp,rows:mapCalls(found.rows,found.d,found.exp,"call",spot).filter(c=>c.k>=spot*0.9&&c.k<=spot*1.6),earn,at:Date.now()}
+                    :{status:"nochain",sym,days,date,spot,lastDate,lastClose,exp:ccTries(date,days)[0],earn,at:Date.now()};
+  }catch(e){
+    ccRes[key]={status:"error",msg:errMsg(e),at:Date.now()};
+    if(["needs_reauth","server_not_connected","selection_required","not_in_manifest","consent_required","approval_required","blocked_by_policy"].includes(e&&e.code))throw e;
+  }
+  ccScanSave();ccScanRender();
+}
+async function ccScan(){
+  if(ccScanning)return;
+  if(!mcp)mcp=await claude.use("mcp").catch(()=>null);
+  if(!mcp){setStatus("Scanning needs the Alpha Vantage connector. Open the page in claude.ai with Alpha Vantage connected.","err");return}
+  const days=S.cc.days,list=(S.favs.cc||[]).slice(),used0=avTotal;greeksModel=false;let done=0;
+  if(!list.length)return;
+  ccScanning=true;ccScanRender();
+  try{
+    for(const sym of list){
+      avCtx=`Scanning ${sym} (${done+1} of ${list.length}).`;
+      setStatus(`Scanning ${sym} for ${days}-day calls (${done+1} of ${list.length})…`);
+      await ccScanOne(sym,days);done++;
+    }
+    const bad=list.filter(t=>{const r=ccRes[t+"|"+days];return r&&r.status!=="ok"});
+    setStatus(`Scan done: ${done} symbol${done>1?"s":""}, ${days}-day calls, end-of-day data, ${avTotal-used0} Alpha Vantage calls.`+(greeksModel?" Alpha Vantage sent no implied volatility or delta for some chains, so deltas are calculated from the quoted prices.":"")+(bad.length?" No usable chain for "+bad.join(", ")+".":""),bad.length?"err":"ok");
+  }catch(e){setStatus(errMsg(e),"err")}
+  finally{avCtx="";ccScanning=false;ccScanRender()}
+}
+function ccScanEval(res){
+  const t=Math.max(1,diffDays(res.date,res.exp)),T=t/365,tgt=(S.cc.maxAssign||20)/100;
+  const cands=res.rows.filter(c=>c.mark>=0.05&&c.k>=res.spot*0.97).map(c=>{
+    const d=c.delta>0?c.delta:bsDelta(res.spot,c.k,T,c.iv,S.rate/100);
+    const q=liq({bid:c.bid,ask:c.ask,mid:c.mark,oi:c.oi}),per=c.mark/res.spot*100;
+    return {k:c.k,mid:c.mark,bid:c.bid,ask:c.ask,oi:c.oi,d,q,per,ann:per*365/t,up:(c.k/res.spot-1)*100}}).filter(c=>c.d>0.005);
+  let pool=cands.filter(c=>c.d<=tgt&&c.q.cls!=="poor"),tier=0;
+  if(!pool.length){pool=cands.filter(c=>c.d<=tgt);tier=1}
+  return {t,tier,c:pool.length?pool.reduce((a,b)=>b.ann>a.ann?b:a):null};
+}
+const CC_SCAN_COLS=[
+  {id:"sym",h:"Ticker",v:o=>o.sym},{id:"spot",h:"Price",v:o=>o.spot},{id:"k",h:"Strike",v:o=>o.c&&o.c.k},
+  {id:"d",h:"Chance called away",v:o=>o.c&&o.c.d},{id:"mid",h:"Premium",v:o=>o.c&&o.c.mid},
+  {id:"per",h:"Return",v:o=>o.c&&o.c.per},{id:"ann",h:"% a year",v:o=>o.c&&o.c.ann},
+  {id:"up",h:"Room to strike",v:o=>o.c&&o.c.up},{id:"sp",h:"Spread",v:o=>o.c&&o.c.q.sp},{id:"oi",h:"Open int.",v:o=>o.c&&o.c.oi},
+  {id:"earn",h:"Earnings",v:o=>o.status==="ok"?(o.earnIn?1:0):null},{id:"exp",h:"Expiry",v:o=>o.exp}];
+function ccScanCell(id,o){const c=o.c;
+  switch(id){
+    case "sym":return `<b>${esc(o.sym)}</b>`;
+    case "spot":return o.spot?(o.lastDate>o.date?`$${fn(o.spot)}<small style="color:var(--loss)">⚠ ${esc(fdate(o.date).replace(/, \d{4}$/,""))}; now $${fn(o.lastClose)}</small>`:"$"+fn(o.spot)):"–";
+    case "k":return `$${fn(c.k,c.k%1?1:0)}${o.tier?"<small>thin market</small>":""}`;
+    case "d":return `${fn(c.d*100,0)}%<small>Δ ${fn(c.d,2)}</small>`;
+    case "mid":return `${fm(c.mid*100)}<small>${c.bid>=0&&c.ask>0?fn(c.bid)+" / "+fn(c.ask):"no quote"}</small>`;
+    case "per":return fn(c.per,2)+"%<small>"+o.t+" days</small>";
+    case "ann":return `<b>${fn(c.ann,1)}%</b>`;
+    case "up":return fp(c.up);
+    case "sp":return c.q.cls?`<span class="pill ${c.q.cls}">${c.q.txt}</span><small>${fn(c.q.sp,0)}% spread</small>`:"no quote";
+    case "oi":return (c.oi||0).toLocaleString();
+    case "earn":return o.earnIn?`⚡ ${esc(fdate(o.earn).replace(/, \d{4}$/,""))}`:(o.earn?`<small>after: ${esc(fdate(o.earn).replace(/, \d{4}$/,""))}</small>`:"–");
+    case "exp":return `${esc(fdate(o.exp).replace(/, \d{4}$/,""))}<small>${o.t} days</small>`;
+  }}
+function ccScanHtml(){
+  const list=S.favs.cc||[];if(!list.length)return "";
+  const days=S.cc.days,tgt=S.cc.maxAssign||20;
+  const rows=list.map(sym=>{const res=ccRes[sym+"|"+days];
+    if(!res)return {sym,status:"none"};
+    if(res.status!=="ok")return {sym,status:res.status,msg:res.msg,spot:res.spot};
+    const ev=ccScanEval(res);
+    return Object.assign({sym,status:"ok",spot:res.spot,lastDate:res.lastDate,lastClose:res.lastClose,date:res.date,exp:res.exp,earn:res.earn,earnIn:!!(res.earn&&res.earn<=res.exp)},ev)});
+  const sort=S.cc.scanSort||(S.cc.scanSort={col:"ann",dir:-1}),cdef=CC_SCAN_COLS.find(c=>c.id===sort.col)||CC_SCAN_COLS[6];
+  const val=o=>{if(o.status!=="ok"||(!o.c&&!["sym","spot","exp","earn"].includes(sort.col)))return null;return cdef.v(o)};
+  rows.sort((a,b)=>{const x=val(a),y=val(b);if(x==null&&y==null)return a.sym.localeCompare(b.sym);if(x==null)return 1;if(y==null)return -1;return (typeof x==="string"?x.localeCompare(y):x-y)*sort.dir});
+  const head=`<tr>${CC_SCAN_COLS.map(c=>`<th scope="col"><button type="button" data-ccsort="${c.id}"${c.id===sort.col?` aria-sort="${sort.dir>0?"ascending":"descending"}"`:""}>${c.h}${c.id===sort.col?(sort.dir>0?" ▲":" ▼"):""}</button></th>`).join("")}</tr>`;
+  const body=rows.map(o=>{
+    if(o.status==="ok"&&o.c)return `<tr data-ccsym="${esc(o.sym)}">${CC_SCAN_COLS.map(c=>`<td>${ccScanCell(c.id,o)}</td>`).join("")}</tr>`;
+    const msg=o.status==="none"?"Not scanned yet":o.status==="nochain"?`❌ No call chain near ${days} days`:o.status==="error"?esc(o.msg||"Couldn't load"):`No call under your ${tgt}% limit`;
+    return `<tr data-ccsym="${esc(o.sym)}"><td><b>${esc(o.sym)}</b></td><td>${o.spot?"$"+fn(o.spot):"–"}</td><td colspan="${CC_SCAN_COLS.length-2}" style="text-align:left;color:var(--muted);font-family:var(--font-ui)">${msg}</td></tr>`}).join("");
+  return `<div class="panel" id="ccScanBox"><div style="font-weight:600;margin-bottom:2px">Scan my covered call list</div>
+    <div class="capsub" style="margin:0 0 8px">For each symbol on your covered call list, the liquid call about ${days} days out that pays the most a year while staying under your ${tgt}% chance of being called away. Tap a column to sort, or a row to load that symbol. Uses one price call, one or more chain calls and one earnings call per symbol.</div>
+    <div class="btnrow" style="margin-bottom:8px"><button type="button" class="primary" id="ccScanBtn"${ccScanning?" disabled":""}>${ccScanning?"Scanning…":"Scan "+list.length+" saved symbol"+(list.length>1?"s":"")}</button></div>
+    <div class="ptbl"><table><thead>${head}</thead><tbody>${body}</tbody></table></div></div>`;
+}
+function ccScanWire(){
+  const box=$("ccScanBox");if(!box)return;
+  $("ccScanBtn").onclick=ccScan;
+  box.querySelectorAll("button[data-ccsort]").forEach(b=>b.onclick=()=>{const id=b.dataset.ccsort,c=S.cc.scanSort;
+    S.cc.scanSort=c.col===id?{col:id,dir:-c.dir}:{col:id,dir:["sym","d","sp","exp","earn","k"].includes(id)?1:-1};save();renderCC()});
+  box.querySelectorAll("tbody tr[data-ccsym]").forEach(tr=>tr.onclick=()=>{const t=tr.dataset.ccsym;if(t===S.ticker&&t===dataTicker())return;
+    $("ticker").value=t;$("ticker").dispatchEvent(new Event("change",{bubbles:true}));window.scrollTo({top:0,behavior:"smooth"})});
+}
+
+/* ---------- saved tickers for the LEAP and covered call tabs ---------- */
+function basisSave(){if(basisDb)basisDb.set({map:S.basis,updated:new Date().toISOString()}).catch(()=>{})}
+function favSave(){
+  try{localStorage.setItem(KEY+"-favs",JSON.stringify(S.favs))}catch(e){}
+  if(favDb)favDb.set({leap:S.favs.leap,cc:S.favs.cc,updated:new Date().toISOString()}).catch(()=>{});
+}
+function favL(){return S.favs[S.tab==="cc"?"cc":"leap"]||[]}
+function favRender(){
+  const el=$("favList");if(!el)return;
+  const L=favL(),cur=(S.ticker||"").toUpperCase(),saved=L.includes(cur);
+  el.innerHTML=`<span style="border:0;background:none;padding:0 4px 0 0;font-family:var(--font-ui);font-weight:500;font-size:12px;color:var(--muted)">${S.tab==="cc"?"Covered call list":"LEAP list"}</span>`+L.map(t=>`<span class="${t===cur?"on":""}"><button type="button" class="favpick" data-fav="${esc(t)}" aria-pressed="${t===cur}" aria-label="Load ${esc(t)}">${esc(t)}</button><button type="button" class="rm" data-favrm="${esc(t)}" aria-label="Remove ${esc(t)} from saved">×</button></span>`).join("")+
+    (cur&&!saved?`<button type="button" class="add" id="favAdd">☆ Save ${esc(cur)}</button>`:"");
+}
+$("favList").addEventListener("click",e=>{
+  const p=e.target.closest("[data-fav]"),rm=e.target.closest("[data-favrm]"),add=e.target.closest("#favAdd");
+  const k=S.tab==="cc"?"cc":"leap";
+  if(rm){S.favs[k]=S.favs[k].filter(t=>t!==rm.dataset.favrm);favSave();save();favRender();return}
+  if(add){const t=(S.ticker||"").toUpperCase();if(t&&!S.favs[k].includes(t))S.favs[k].push(t);favSave();save();favRender();return}
+  if(p){const t=p.dataset.fav;if(t===dataTicker()&&t===S.ticker)return;
+    $("ticker").value=t;$("ticker").dispatchEvent(new Event("change",{bubbles:true}));favRender()}
+});
+$("exportCsv").onclick=exportCsv;
+claude.use("downloads").then(d=>{if(d)$("exportCsv").hidden=false}).catch(()=>{});
+setStatus(S.expVerified==="seed"?"Preloaded: at-the-money call from the "+fdate(S.dataDate)+" end-of-day chain. Press Refresh for the latest.":"Showing your saved entries. Press Refresh for the latest end-of-day data.");
+render();
+})();
+</script>
+
+</body></html>
