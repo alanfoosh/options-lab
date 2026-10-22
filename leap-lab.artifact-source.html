@@ -1858,8 +1858,7 @@ function renderPut(){
   main.innerHTML=html;
   main.querySelectorAll("th button[data-sort]").forEach(b=>b.onclick=()=>{const id=b.dataset.sort;
     S.put.sort=S.put.sort.col===id?{col:id,dir:-S.put.sort.dir}:{col:id,dir:["sym","d","sp","be","exp","earn","k"].includes(id)?1:-1};save();renderPut()});
-  main.querySelectorAll("tbody tr[data-sym]").forEach(tr=>tr.onclick=()=>{const s=tr.dataset.sym;S.put.open=S.put.open===s?null:s;save();putDerived();renderPut();
-    if(S.put.open){const f=$("putFig");if(f)f.scrollIntoView({behavior:"smooth",block:"nearest"})}});
+  main.querySelectorAll("tbody tr[data-sym]").forEach(tr=>tr.onclick=()=>{const s=tr.dataset.sym;S.put.open=S.put.open===s?null:s;save();putDerived();renderPut()});
   px&&px.wire&&px.wire();
   chart&&chart.wire&&chart.wire();
 }
@@ -1952,7 +1951,7 @@ $("putAddBtn").onclick=putAdd;
 $("putAdd").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();putAdd()}});
 $("putList").addEventListener("click",e=>{
   const p=e.target.closest("button[data-putpick]");
-  if(p){const t=p.dataset.putpick;S.put.open=S.put.open===t?null:t;putDerived();save();renderPut();if(S.put.open){const f=$("putFig");if(f)f.scrollIntoView({behavior:"smooth",block:"nearest"})}return}
+  if(p){const t=p.dataset.putpick;S.put.open=S.put.open===t?null:t;putDerived();save();renderPut();return}
   const b=e.target.closest("button[data-putrm]");if(!b)return;const t=b.dataset.putrm;
   S.put.tickers=S.put.tickers.filter(x=>x!==t);putQueue=putQueue.filter(x=>x!==t);if(S.put.open===t)S.put.open=null;putSaveList();putDerived();save();renderPut()});
 $("putDays").addEventListener("click",e=>{const b=e.target.closest("button[data-days]");if(!b)return;S.put.days=+b.dataset.days;putQueue=[];putSaveList();putDerived();save();renderPut();putAutoScan()});
