@@ -2116,7 +2116,7 @@ async function slStart(){
   if(!mcp)mcp=await claude.use("mcp").catch(()=>null);
   if(!mcp){setStatus("The shortlist needs the Alpha Vantage connection.","err");return}
   const days=S.put.days,maxA=S.put.maxAssign,uni=slUniverse(),used0=avTotal;greeksModel=false;
-  slRun={phase:"running",total:uni.length,checked:0,skipped:0,over:0,zone:0,puts:0,found:0,calls0:used0,cancel:false,rows:[],step:"A",cur:"",days,maxA,maxPrice:+S.sl.maxPrice,minRet:+S.sl.minRet,lo:+S.sl.lo,hi:+S.sl.hi,startedAt:Date.now()};
+  slRun={phase:"running",limitHits:0,errs:0,total:uni.length,checked:0,skipped:0,over:0,zone:0,puts:0,found:0,calls0:used0,cancel:false,rows:[],step:"A",cur:"",days,maxA,maxPrice:+S.sl.maxPrice,minRet:+S.sl.minRet,lo:+S.sl.lo,hi:+S.sl.hi,startedAt:Date.now()};
   slSel=new Set();slShowAll=false;slRender();syncPutBtn();
   const zone=[],tsKeep=new Map();
   try{
@@ -2127,12 +2127,16 @@ async function slStart(){
       let c=slPx[sym];
       if(!slFreshPx(c)){
         try{
-          const dp=payloadOf(await call("TIME_SERIES_DAILY",{symbol:sym,outputsize:"compact",datatype:"json"}));
+          let dp=payloadOf(await call("TIME_SERIES_DAILY",{symbol:sym,outputsize:"compact",datatype:"json"}));
+          for(let t=0;t<2&&dp&&!dp["Time Series (Daily)"]&&(dp.Information||dp.Note);t++){   // Alpha Vantage answered with a notice instead of prices: wait, then ask again rather than skipping the stock
+            slRun.limitHits++;await avCountdown(61000,"Alpha Vantage sent a limit notice: "+String(dp.Information||dp.Note).slice(0,90)+".");
+            dp=payloadOf(await call("TIME_SERIES_DAILY",{symbol:sym,outputsize:"compact",datatype:"json"}))}
           const ts=dp&&dp["Time Series (Daily)"];
+          if(dp&&!ts&&(dp.Information||dp.Note))throw {code:"tool_error",message:"Alpha Vantage keeps refusing: "+String(dp.Information||dp.Note).slice(0,160)};
           if(!ts){c={at:Date.now(),skip:"no price data"}}
           else{c=Object.assign({at:Date.now()},slBand(ts));if(!c.skip&&c.close<=slRun.maxPrice*1.0&&c.pos>=slRun.lo&&c.pos<=slRun.hi)tsKeep.set(sym,ts)}
           slPx[sym]=Object.assign({},slPx[sym]||{},c);c=slPx[sym];
-        }catch(e){if(["needs_reauth","server_not_connected","selection_required","not_in_manifest","consent_required","approval_required","blocked_by_policy"].includes(e&&e.code))throw e;c={at:Date.now(),skip:"error"}}
+        }catch(e){if(["needs_reauth","server_not_connected","selection_required","not_in_manifest","consent_required","approval_required","blocked_by_policy"].includes(e&&e.code)||/keeps refusing/.test(e&&e.message||""))throw e;slRun.errs++;c={at:Date.now(),skip:"error"}}
       }
       slRun.checked++;
       if(c.skip)slRun.skipped++;
@@ -2203,7 +2207,7 @@ function slRender(){
     }
     $("slStep").textContent=run.step==="A"?`Step 1 of 2: checking prices (${run.checked} of ${run.total})`:`Step 2 of 2: checking puts (${run.puts} of ${run.zone})`;
     $("slFill").style.width=pct.toFixed(0)+"%";$("slPb").setAttribute("aria-valuenow",Math.round(pct));
-    $("slStats").innerHTML=`Now: <b>${esc(run.cur)}</b> · ${run.over} over $${run.maxPrice} · ${run.zone} in the band zone · ${run.found} with a usable put · ${avTotal-run.calls0} Alpha Vantage calls · ${Math.floor(el2/60)}:${String(el2%60).padStart(2,"0")} elapsed`;
+    $("slStats").innerHTML=`Now: <b>${esc(run.cur)}</b> · ${run.over} over $${run.maxPrice} · ${run.zone} in the band zone · ${run.found} with a usable put · ${avTotal-run.calls0} Alpha Vantage calls in total (${avLog.filter(t=>Date.now()-t<60000).length} in the last minute, never more than ${AV_PER_MIN} allowed) · ${run.errs} errors · ${run.limitHits} limit notices · ${Math.floor(el2/60)}:${String(el2%60).padStart(2,"0")} elapsed`;
     return;
   }
   if(run.phase==="done"||run.phase==="cancelled"||(run.phase==="setup"&&slLast)){
