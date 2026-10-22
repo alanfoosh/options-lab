@@ -45,6 +45,14 @@ account='''
 </section>
 '''
 rep('<div class="stack">',account+'\n<div class="stack">')
+rep('<button type="button" role="tab" id="tabPut" aria-selected="false">Sell puts</button>','<button type="button" role="tab" id="tabPut" aria-selected="false">Sell puts</button>\n  <button type="button" role="tab" id="tabSet" aria-selected="false" style="margin-left:auto">Settings</button>')
+rep('<div class="stack" id="leapTab">','<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p></div>\n<div class="stack" id="leapTab">')
+rep('const cc=S.tab==="cc",pt=S.tab==="put",lp=!cc&&!pt;','const cc=S.tab==="cc",pt=S.tab==="put",st=S.tab==="set",lp=!cc&&!pt&&!st;')
+rep('$("srPanel").hidden=pt;','$("srPanel").hidden=pt||st;')
+rep('$("leapTab").hidden=!lp;$("ccTab").hidden=!cc;$("putTab").hidden=!pt;','$("leapTab").hidden=!lp;$("ccTab").hidden=!cc;$("putTab").hidden=!pt;$("setTab").hidden=!st;$("tabSet").setAttribute("aria-selected",st);$("stockGrid").closest("section").hidden=st;')
+rep('function render(){\n  renderSR();','function render(){\n  if(S.tab==="set")return;\n  renderSR();')
+rep('$("tabPut").onclick=()=>{','$("tabSet").onclick=()=>{S.tab="set";derived();save();render()};\n$("tabPut").onclick=()=>{')
+
 
 shim=r'''<script>
 /* Hosted-page shim: gives the page the same window.claude calls the claude.ai artifact runtime provides. */
@@ -98,7 +106,8 @@ window.claude={use:async n=>{await ready;return n==="mcp"?mcp:n==="downloads"?dl
 
 /* ----- account box ----- */
 const note=t=>{$("acMsg").textContent=t};
-function showAcct(){
+function placeAcct(){const a=$("acct"),slot=$("setSlot");if(session){slot.appendChild(a);$("setNote").hidden=true}else $("setNote").hidden=false}
+function showAcct(){placeAcct();
   $("acctIn").hidden=!session;$("acctOut").hidden=!!session;
   if(session)$("acWho").textContent="Signed in as "+session.user.email+".";
   const k=getKey();
@@ -145,7 +154,7 @@ m=re.search(r'<script>\n\(function\(\)\{\n"use strict";',s)
 assert m,"main script not found"
 s=s[:m.start()]+'<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>\n'+shim+s[m.start():]
 
-head='<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>*,*::before,*::after{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--ink);font-family:var(--font-ui)}input[type=password],input[type=email]{font:500 16px var(--font-num);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 10px;min-height:42px;width:100%;min-width:0}</style>\n'
+head='<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>*,*::before,*::after{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--ink);font-family:var(--font-ui)}@media(max-width:520px){.tabs{gap:0}.tabs button{padding:10px 7px;font-size:13px;white-space:nowrap;min-width:0}}input[type=password],input[type=email]{font:500 16px var(--font-num);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 10px;min-height:42px;width:100%;min-width:0}</style>\n'
 out=head+s+'\n</body></html>\n'
 open(dst,'w',encoding='utf8').write(out)
 print("wrote",dst,len(out))

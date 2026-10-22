@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>*,*::before,*::after{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--ink);font-family:var(--font-ui)}input[type=password],input[type=email]{font:500 16px var(--font-num);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 10px;min-height:42px;width:100%;min-width:0}</style>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>*,*::before,*::after{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--ink);font-family:var(--font-ui)}@media(max-width:520px){.tabs{gap:0}.tabs button{padding:10px 7px;font-size:13px;white-space:nowrap;min-width:0}}input[type=password],input[type=email]{font:500 16px var(--font-num);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 10px;min-height:42px;width:100%;min-width:0}</style>
 <title>Options Scenario Lab</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap">
@@ -182,6 +182,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
   <button type="button" role="tab" id="tabLeap" aria-selected="true">LEAP calls</button>
   <button type="button" role="tab" id="tabCC" aria-selected="false">Covered calls</button>
   <button type="button" role="tab" id="tabPut" aria-selected="false">Sell puts</button>
+  <button type="button" role="tab" id="tabSet" aria-selected="false" style="margin-left:auto">Settings</button>
 </div>
 
 <section class="panel" aria-label="Stock">
@@ -200,6 +201,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 </section>
 
 
+<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p></div>
 <div class="stack" id="leapTab">
 <section class="panel pick" aria-label="LEAP and strikes">
   <fieldset>
@@ -406,7 +408,8 @@ window.claude={use:async n=>{await ready;return n==="mcp"?mcp:n==="downloads"?dl
 
 /* ----- account box ----- */
 const note=t=>{$("acMsg").textContent=t};
-function showAcct(){
+function placeAcct(){const a=$("acct"),slot=$("setSlot");if(session){slot.appendChild(a);$("setNote").hidden=true}else $("setNote").hidden=false}
+function showAcct(){placeAcct();
   $("acctIn").hidden=!session;$("acctOut").hidden=!!session;
   if(session)$("acWho").textContent="Signed in as "+session.user.email+".";
   const k=getKey();
@@ -576,10 +579,10 @@ function derived(){
     else m=dtxt.replace(/ · $/,"");
     $("meta"+i).textContent=m;
   });
-  const cc=S.tab==="cc",pt=S.tab==="put",lp=!cc&&!pt;
-  $("leapTab").hidden=!lp;$("ccTab").hidden=!cc;$("putTab").hidden=!pt;
+  const cc=S.tab==="cc",pt=S.tab==="put",st=S.tab==="set",lp=!cc&&!pt&&!st;
+  $("leapTab").hidden=!lp;$("ccTab").hidden=!cc;$("putTab").hidden=!pt;$("setTab").hidden=!st;$("tabSet").setAttribute("aria-selected",st);$("stockGrid").closest("section").hidden=st;
   $("tabLeap").setAttribute("aria-selected",lp);$("tabCC").setAttribute("aria-selected",cc);$("tabPut").setAttribute("aria-selected",pt);
-  $("stockGrid").hidden=pt;$("favRow").hidden=pt;favRender();$("stockHint").hidden=pt;$("srPanel").hidden=pt;
+  $("stockGrid").hidden=pt;$("favRow").hidden=pt;favRender();$("stockHint").hidden=pt;$("srPanel").hidden=pt||st;
   $("timeInputs").hidden=!lp||S.view!=="time";$("payInputs").hidden=!lp||S.view!=="payoff";$("highInputs").hidden=!lp;
   putDerived();
   ccDerived();
@@ -841,6 +844,7 @@ let charts=[];
 function cw(){const el=$(S.tab==='cc'?'ccMain':S.tab==='put'?'putMain':'main');const w=el.clientWidth||$('ccTab').parentNode.clientWidth;return Math.max(300,Math.min(860,Math.round(w-30)))}
 let lastW=0;window.addEventListener('resize',()=>{const w=cw();if(Math.abs(w-lastW)>20){lastW=w;schedule()}});
 function render(){
+  if(S.tab==="set")return;
   renderSR();
   if(S.tab==="cc"){renderCC();return}
   if(S.tab==="put"){renderPut();return}
@@ -1665,6 +1669,7 @@ function ccExpChart(sel){
 buildStrikeRows();buildCcRows();syncInputs();ccSync();
 $("tabLeap").onclick=()=>{S.tab="leap";derived();save();render()};
 $("tabCC").onclick=()=>{S.tab="cc";derived();save();render()};
+$("tabSet").onclick=()=>{S.tab="set";derived();save();render()};
 $("tabPut").onclick=()=>{S.tab="put";derived();save();render();putAutoScan()};
 $("ccDays").addEventListener("click",e=>{const b=e.target.closest("button[data-days]");if(!b)return;
   S.cc.days=+b.dataset.days;S.cc.expiry=ccTries(S.dataDate,S.cc.days)[0];S.cc.expVerified="none";ccChain=[];
