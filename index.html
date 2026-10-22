@@ -218,7 +218,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 </section>
 
 
-<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 37 (built 2026-10-22)</p></div>
+<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 38 (built 2026-10-22)</p></div>
 <div class="stack" id="leapTab">
 <section class="panel pick" aria-label="LEAP and strikes">
   <fieldset>
@@ -532,7 +532,8 @@ let S=DEF();
 try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);if(o&&o.strikes&&o.strikes.length===3)S=Object.assign(DEF(),o)}}catch(e){}
 try{const tk=localStorage.getItem(KEY+"-ticker");if(tk)S.ticker=tk}catch(e){}
 S.put=Object.assign({tickers:[S.ticker||"CRWD"],days:30,maxAssign:20,hideThin:false,sort:{col:"ann",dir:-1},open:null,picks:{}},S.put||{});try{const wl=JSON.parse(localStorage.getItem(KEY+"-watch")||"null");if(Array.isArray(wl)&&wl.length)S.put.tickers=wl}catch(e){}
-S.sl=Object.assign({maxPrice:100,minRet:1.5,lo:15,hi:35,extra:""},S.sl||{});
+S.sl=Object.assign({maxPrice:250,minRet:1.5,lo:15,hi:35,extra:""},S.sl||{});
+if(S.sl.v!==2){S.sl.v=2;S.sl.maxPrice=250}   // one-time: the default stock price limit moved from $100 to $250
 S.favs=S.favs&&!Array.isArray(S.favs)?S.favs:{leap:[S.ticker||"CRWD"],cc:[S.ticker||"CRWD"]};try{const fv=JSON.parse(localStorage.getItem(KEY+"-favs")||"null");if(fv&&Array.isArray(fv.leap)&&Array.isArray(fv.cc))S.favs=fv}catch(e){}
 S.cc.view=S.cc.view||"pick";S.cc.maxAssign=S.cc.maxAssign||20;S.cc.strikes.forEach((r,i)=>r.on=i===0);
 let chain=[];   // listed calls for the expiry in use, from the last refresh
@@ -2197,7 +2198,7 @@ function ccScanWire(){
 
 
 /* ---------- shortlist put candidates ---------- */
-const SL_UNIVERSE=("BAC C WFC USB TFC KEY RF HBAN CFG SCHW SOFI PYPL SYF ALLY AIG T VZ CMCSA DIS "+   // 100 liquid optionable names that often trade under $100
+const SL_UNIVERSE=("BAC C WFC USB TFC KEY RF HBAN CFG SCHW SOFI PYPL SYF ALLY AIG T VZ CMCSA DIS "+   // 100 liquid optionable names, mostly priced under $100
  "KO MDLZ KHC GIS CPB HRL KR MO KDP XOM OXY DVN SLB HAL KMI WMB APA CTRA EQT BKR COP F GM CSX UPS "+
  "DAL UAL AAL LUV CCL NCLH UBER LYFT PFE MRK BMY GILD CVS BSX VTRS BAX MDT "+
  "INTC MU HPE HPQ CSCO QCOM ON MRVL PLTR SNAP PINS DBX TWLO PATH U NKE SBUX KSS M GAP BBY CHWY EBAY DKNG MGM "+
@@ -2362,10 +2363,10 @@ function slRender(){
       <label class="f">Band zone to (%)<input type="number" id="slHi" inputmode="decimal" min="0" max="100" step="5" value="${S.sl.hi}"></label>
     </div>
     <label class="f" style="margin-top:10px">Extra symbols to include (optional)<input type="text" id="slExtra" value="${esc(S.sl.extra)}" placeholder="e.g. DAL, UAL" autocapitalize="characters" autocomplete="off" spellcheck="false"></label>
-    ${sup(`Will check about ${uni.length} liquid stocks (a built-in list, your extra symbols and every symbol in your three lists). Roughly ${est} to ${est+2} minutes at ${per} Alpha Vantage calls a minute: one price call per stock, then about three calls for each one inside the band zone. Prices are end-of-day closes. Needs a premium key.`)}
+    <div class="hint" id="slEst">${`Will check about ${uni.length} liquid stocks (a built-in list, your extra symbols and every symbol in your three lists). Roughly ${est} to ${est+2} minutes at ${per} Alpha Vantage calls a minute: one price call per stock, then about three calls for each one inside the band zone. Prices are end-of-day closes. Needs a premium key.`}</div>
     <div class="slfoot"><button type="button" class="primary" id="slGo">Start search</button><button type="button" id="slHide">Close</button></div>`;
-  const rd=()=>{S.sl.maxPrice=+$("slMax").value||100;S.sl.minRet=+$("slRet").value||0;S.sl.lo=Math.max(0,+$("slLo").value||0);S.sl.hi=Math.min(100,+$("slHi").value||100);S.sl.extra=$("slExtra").value;save()};
-  ["slMax","slRet","slLo","slHi","slExtra"].forEach(i=>$(i).onchange=()=>{rd();slRender()});
+  const rd=()=>{S.sl.maxPrice=+$("slMax").value||250;S.sl.minRet=+$("slRet").value||0;S.sl.lo=Math.max(0,+$("slLo").value||0);S.sl.hi=Math.min(100,+$("slHi").value||100);S.sl.extra=$("slExtra").value;save()};
+  ["slMax","slRet","slLo","slHi","slExtra"].forEach(i=>$(i).onchange=()=>{rd();const n=slUniverse().length,e=$("slEst");if(e)e.textContent=e.textContent.replace(/about \d+ liquid/,"about "+n+" liquid")});   // no redraw: it would swallow the click on Start search
   $("slGo").onclick=()=>{rd();slStart()};$("slHide").onclick=slClose;
 }
 function slAddBtn(){const b=$("slAdd");if(!b)return;b.disabled=!slSel.size;b.textContent=slSel.size?`Add ${slSel.size} selected to watch list`:"Add selected to watch list"}
