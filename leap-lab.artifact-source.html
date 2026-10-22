@@ -263,12 +263,12 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 </div>
 
 <div class="stack" id="putTab" hidden>
-<section class="panel pick" aria-label="Put scanner setup">
-  <fieldset>
-    <div class="wl fav" id="putList" role="group" aria-label="Put watch list"></div>
-    <div class="btnrow" style="margin-top:8px;flex-wrap:nowrap"><input type="text" id="putAdd" placeholder="Add symbols, e.g. AAPL, MSFT" autocapitalize="characters" autocomplete="off" spellcheck="false" style="flex:1;min-width:0" aria-label="Symbols to add"><button type="button" id="putAddBtn">Add</button></div>
-    <p class="hint" id="putSaveNote">Your list is saved, so it's here next time. Tap a symbol to see its strikes.</p>
-  </fieldset>
+<section class="panel" aria-label="Put watch list">
+  <div class="wl fav" id="putList" role="group" aria-label="Put watch list"></div>
+  <div class="btnrow" style="margin-top:8px;flex-wrap:nowrap"><input type="text" id="putAdd" placeholder="Add symbols, e.g. AAPL, MSFT" autocapitalize="characters" autocomplete="off" spellcheck="false" style="flex:1;min-width:0" aria-label="Symbols to add to this list"><button type="button" id="putAddBtn">Add</button></div>
+  <p class="hint" id="putSaveNote">Your list is saved, so it's here next time. Tap a symbol to see its strikes.</p>
+</section>
+<section class="panel" aria-label="Put scanner setup">
   <fieldset>
     <legend>Put to sell</legend>
     <div class="chips" id="putDays" role="group" aria-label="Days to expiry">
