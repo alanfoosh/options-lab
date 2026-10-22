@@ -1850,6 +1850,7 @@ function renderPut(){
   html+=`<div class="capsub" style="margin:0">For each symbol, the liquid put that pays the most a year while staying under your ${S.put.maxAssign}% chance of assignment. The chart for each symbol shows where support and the expected move sit. Return is on the cash set aside (strike × 100). Tap a column to sort, or a row to see every strike.${dates.length?" End-of-day data from "+dates.map(fdate).join(", ")+".":""}</div>
     <div class="ptbl"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
   const op=rows.find(o=>o.sym===S.put.open&&o.status==="ok");
+  if(op){const r0=putRes[op.sym+"|"+S.put.days];if(r0&&r0.status==="ok"&&!(r0.hist&&r0.hist.c.length>=70)&&!putQueue.includes(op.sym)&&!putScanning)putScan([op.sym])}   // older saved results have no price history: fetch it once
   const px=op?putPriceChart(op):null;
   if(px)html+=px.html;
   const chart=op?putPickChart(op):null;
@@ -1910,7 +1911,7 @@ function putPickChart(o){
 
 function putPriceChart(o){ // stock price with Bollinger bands (20-day average +/- 2 standard deviations) and the 50-day average
   const res=putRes[o.sym+"|"+S.put.days],h=res&&res.hist;
-  if(!h||h.c.length<70)return {html:`<div class="capsub" style="margin:10px 0 0">Scan ${esc(o.sym)} again to draw its price chart with Bollinger bands.</div>`};
+  if(!h||h.c.length<70)return {html:`<div class="capsub" style="margin:10px 0 0">Loading the price chart for ${esc(o.sym)}… If it does not appear, scan ${esc(o.sym)} again.</div>`};
   const c=h.c,n=c.length,show=60,i0=n-show;
   const sma=(i,k)=>{let a=0;for(let j=i-k+1;j<=i;j++)a+=c[j];return a/k};
   const pts=[];for(let i=i0;i<n;i++){const m=sma(i,20);let v=0;for(let j=i-19;j<=i;j++)v+=(c[j]-m)*(c[j]-m);const sd=Math.sqrt(v/20);pts.push({d:h.d[i],c:c[i],m,lo:m-2*sd,hi:m+2*sd,m50:i>=49?sma(i,50):null})}
