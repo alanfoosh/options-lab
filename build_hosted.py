@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Build the standalone hosted page (index.html) from the claude.ai artifact source (leap-lab.html).
-Usage: python3 build_hosted.py leap-lab.html index.html
+Usage: python3 build_hosted.py leap-lab.html index.html [version number, matches the artifact version]
 The artifact page talks to claude.ai's runtime (window.claude); the hosted page gets a small shim that
 provides the same calls: Alpha Vantage over its web API with the user's own key, per-user saved data in Supabase,
 and file downloads. The main page code is left untouched apart from a few text replacements below."""
 import sys,re
 src,dst=sys.argv[1],sys.argv[2]
+VERSION=sys.argv[3] if len(sys.argv)>3 else '30'
+import datetime
+BUILT=datetime.date.today().isoformat()
 s=open(src,encoding='utf8').read()
 
 SB_URL="https://zngsukxhmfqacwzvzvnt.supabase.co"
@@ -46,9 +49,9 @@ account='''
 '''
 rep('<div class="stack">',account+'\n<div class="stack">')
 rep('<button type="button" role="tab" id="tabPut" aria-selected="false">Sell puts</button>','<button type="button" role="tab" id="tabPut" aria-selected="false">Sell puts</button>\n  <button type="button" role="tab" id="tabSet" aria-selected="false" style="margin-left:auto">Settings</button>')
-rep('<div class="stack" id="leapTab">','<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p></div>\n<div class="stack" id="leapTab">')
+rep('<div class="stack" id="leapTab">','<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version __VERSION__ (built __BUILT__)</p></div>\n<div class="stack" id="leapTab">')
 rep('const cc=S.tab==="cc",pt=S.tab==="put",lp=!cc&&!pt;','const cc=S.tab==="cc",pt=S.tab==="put",st=S.tab==="set",lp=!cc&&!pt&&!st;')
-rep('$("srPanel").hidden=pt;','$("srPanel").hidden=pt||st;')
+rep('$("srPanel").hidden=pt;','$("srPanel").hidden=pt||st;document.querySelector(\'[aria-label="More settings"]\').hidden=st;')
 rep('$("leapTab").hidden=!lp;$("ccTab").hidden=!cc;$("putTab").hidden=!pt;','$("leapTab").hidden=!lp;$("ccTab").hidden=!cc;$("putTab").hidden=!pt;$("setTab").hidden=!st;$("tabSet").setAttribute("aria-selected",st);$("stockGrid").closest("section").hidden=st;')
 rep('function render(){\n  renderSR();','function render(){\n  if(S.tab==="set")return;\n  renderSR();')
 rep('$("tabPut").onclick=()=>{','$("tabSet").onclick=()=>{S.tab="set";derived();save();render()};\n$("tabPut").onclick=()=>{')
@@ -155,6 +158,7 @@ assert m,"main script not found"
 s=s[:m.start()]+'<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>\n'+shim+s[m.start():]
 
 head='<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>*,*::before,*::after{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--ink);font-family:var(--font-ui)}@media(max-width:520px){.tabs{gap:0}.tabs button{padding:10px 7px;font-size:13px;white-space:nowrap;min-width:0}}input[type=password],input[type=email]{font:500 16px var(--font-num);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 10px;min-height:42px;width:100%;min-width:0}</style>\n'
+s=s.replace('__VERSION__',VERSION).replace('__BUILT__',BUILT)
 out=head+s+'\n</body></html>\n'
 open(dst,'w',encoding='utf8').write(out)
 print("wrote",dst,len(out))

@@ -172,6 +172,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
   </div>
   <div id="favRow" style="margin-top:10px">
     <div class="wl fav" id="favList" role="group" aria-label="Saved tickers"></div>
+    <div class="btnrow" style="margin-top:8px;flex-wrap:nowrap"><input type="text" id="favAddIn" placeholder="Add symbols, e.g. AAPL, MSFT" autocapitalize="characters" autocomplete="off" spellcheck="false" style="flex:1;min-width:0" aria-label="Symbols to add to this list"><button type="button" id="favAddBtn">Add</button></div>
   </div>
   <div class="status" id="status" style="margin-top:10px" role="status" aria-live="polite"></div>
   <p class="hint" id="apiInfo" style="margin:6px 0 0"></p>
@@ -264,10 +265,9 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 <div class="stack" id="putTab" hidden>
 <section class="panel pick" aria-label="Put scanner setup">
   <fieldset>
-    <legend>Watch list</legend>
-    <div class="wl" id="putList"></div>
+    <div class="wl fav" id="putList" role="group" aria-label="Put watch list"></div>
     <div class="btnrow" style="margin-top:8px;flex-wrap:nowrap"><input type="text" id="putAdd" placeholder="Add symbols, e.g. AAPL, MSFT" autocapitalize="characters" autocomplete="off" spellcheck="false" style="flex:1;min-width:0" aria-label="Symbols to add"><button type="button" id="putAddBtn">Add</button></div>
-    <p class="hint" id="putSaveNote">Your list is saved, so it's here next time.</p>
+    <p class="hint" id="putSaveNote">Your list is saved, so it's here next time. Tap a symbol to see its strikes.</p>
   </fieldset>
   <fieldset>
     <legend>Put to sell</legend>
@@ -1683,7 +1683,7 @@ function putSaveList(){
 })();
 function putDerived(){
   if(!$("putList"))return;
-  $("putList").innerHTML=S.put.tickers.map(t=>`<span>${esc(t)}<button type="button" data-rm="${esc(t)}" aria-label="Remove ${esc(t)}">×</button></span>`).join("")||`<span style="padding:6px 12px;font-weight:400;color:var(--muted)">Empty. Add a symbol below.</span>`;
+  $("putList").innerHTML=pillList("Put watch list",S.put.tickers,S.put.open,"data-putpick","data-putrm","Empty. Add a symbol below.");
   $("putDays").querySelectorAll("button").forEach(b=>{const d=+b.dataset.days,none=S.put.tickers.length&&S.put.tickers.every(t=>{const r=putRes[t+"|"+d];return r&&r.status==="nochain"});
     b.setAttribute("aria-pressed",d===S.put.days);b.classList.toggle("nochain",none)});
   $("putMaxA").value=S.put.maxAssign;$("putHideThin").checked=!!S.put.hideThin;
@@ -1834,7 +1834,7 @@ function renderPut(){
   main.innerHTML=html;
   main.querySelectorAll("th button[data-sort]").forEach(b=>b.onclick=()=>{const id=b.dataset.sort;
     S.put.sort=S.put.sort.col===id?{col:id,dir:-S.put.sort.dir}:{col:id,dir:["sym","d","sp","be","exp","earn","k"].includes(id)?1:-1};save();renderPut()});
-  main.querySelectorAll("tbody tr[data-sym]").forEach(tr=>tr.onclick=()=>{const s=tr.dataset.sym;S.put.open=S.put.open===s?null:s;save();renderPut();
+  main.querySelectorAll("tbody tr[data-sym]").forEach(tr=>tr.onclick=()=>{const s=tr.dataset.sym;S.put.open=S.put.open===s?null:s;save();putDerived();renderPut();
     if(S.put.open){const f=$("putFig");if(f)f.scrollIntoView({behavior:"smooth",block:"nearest"})}});
   chart&&chart.wire&&chart.wire();
 }
@@ -1884,14 +1884,17 @@ function putPickChart(o){
   return {html,wire};
 }
 function putAdd(){
-  const raw=$("putAdd").value.toUpperCase().split(/[\s,;]+/).map(t=>t.replace(/[^A-Z0-9.\-]/g,"")).filter(Boolean);
+  const raw=symList($("putAdd").value);
   const add=raw.filter(t=>!S.put.tickers.includes(t));if(!raw.length)return;
   S.put.tickers=S.put.tickers.concat(add).slice(0,60);$("putAdd").value="";
   putSaveList();putDerived();save();renderPut();if(add.length)putScan(add);
 }
 $("putAddBtn").onclick=putAdd;
 $("putAdd").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();putAdd()}});
-$("putList").addEventListener("click",e=>{const b=e.target.closest("button[data-rm]");if(!b)return;const t=b.dataset.rm;
+$("putList").addEventListener("click",e=>{
+  const p=e.target.closest("button[data-putpick]");
+  if(p){const t=p.dataset.putpick;S.put.open=S.put.open===t?null:t;putDerived();save();renderPut();if(S.put.open){const f=$("putFig");if(f)f.scrollIntoView({behavior:"smooth",block:"nearest"})}return}
+  const b=e.target.closest("button[data-putrm]");if(!b)return;const t=b.dataset.putrm;
   S.put.tickers=S.put.tickers.filter(x=>x!==t);putQueue=putQueue.filter(x=>x!==t);if(S.put.open===t)S.put.open=null;putSaveList();putDerived();save();renderPut()});
 $("putDays").addEventListener("click",e=>{const b=e.target.closest("button[data-days]");if(!b)return;S.put.days=+b.dataset.days;putQueue=[];putSaveList();putDerived();save();renderPut();putAutoScan()});
 $("putMaxA").onchange=()=>{S.put.maxAssign=+$("putMaxA").value||20;S.put.picks={};putSaveList();save();renderPut()};
@@ -2017,12 +2020,25 @@ function favSave(){
   if(favDb)favDb.set({leap:S.favs.leap,cc:S.favs.cc,updated:new Date().toISOString()}).catch(()=>{});
 }
 function favL(){return S.favs[S.tab==="cc"?"cc":"leap"]||[]}
+// One pill list for every tab: label, then a pill per symbol (tap = open, x = remove).
+function pillList(label,list,active,pickAttr,rmAttr,emptyTxt){
+  return `<span style="border:0;background:none;padding:0 4px 0 0;font-family:var(--font-ui);font-weight:500;font-size:12px;color:var(--muted)">${esc(label)}</span>`+
+    (list.length?list.map(t=>`<span class="${t===active?"on":""}"><button type="button" class="favpick" ${pickAttr}="${esc(t)}" aria-pressed="${t===active}" aria-label="Open ${esc(t)}">${esc(t)}</button><button type="button" class="rm" ${rmAttr}="${esc(t)}" aria-label="Remove ${esc(t)} from the list">×</button></span>`).join(""):`<span style="border:0;background:none;padding:6px 4px;font-weight:400;color:var(--muted)">${esc(emptyTxt)}</span>`);
+}
+function symList(raw){return String(raw).toUpperCase().split(/[\s,;]+/).map(t=>t.replace(/[^A-Z0-9.\-]/g,"")).filter(Boolean)}
 function favRender(){
   const el=$("favList");if(!el)return;
   const L=favL(),cur=(S.ticker||"").toUpperCase(),saved=L.includes(cur);
-  el.innerHTML=`<span style="border:0;background:none;padding:0 4px 0 0;font-family:var(--font-ui);font-weight:500;font-size:12px;color:var(--muted)">${S.tab==="cc"?"Covered call list":"LEAP list"}</span>`+L.map(t=>`<span class="${t===cur?"on":""}"><button type="button" class="favpick" data-fav="${esc(t)}" aria-pressed="${t===cur}" aria-label="Load ${esc(t)}">${esc(t)}</button><button type="button" class="rm" data-favrm="${esc(t)}" aria-label="Remove ${esc(t)} from saved">×</button></span>`).join("")+
+  el.innerHTML=pillList(S.tab==="cc"?"Covered call list":"LEAP list",L,cur,"data-fav","data-favrm","Empty. Add a symbol below.")+
     (cur&&!saved?`<button type="button" class="add" id="favAdd">☆ Save ${esc(cur)}</button>`:"");
 }
+function favAddMany(){
+  const k=S.tab==="cc"?"cc":"leap",add=symList($("favAddIn").value).filter(t=>!S.favs[k].includes(t));
+  $("favAddIn").value="";if(!add.length)return;
+  S.favs[k]=S.favs[k].concat(add).slice(0,40);favSave();save();favRender();
+}
+$("favAddBtn").onclick=favAddMany;
+$("favAddIn").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();favAddMany()}});
 $("favList").addEventListener("click",e=>{
   const p=e.target.closest("[data-fav]"),rm=e.target.closest("[data-favrm]"),add=e.target.closest("#favAdd");
   const k=S.tab==="cc"?"cc":"leap";
