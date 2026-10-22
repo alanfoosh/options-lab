@@ -224,7 +224,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 </section>
 
 
-<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 39 (built 2026-10-22)</p></div>
+<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 40 (built 2026-10-22)</p></div>
 <div class="stack" id="leapTab">
 <section class="panel pick" aria-label="LEAP and strikes">
   <fieldset>
@@ -2219,11 +2219,11 @@ function ccScanWire(){
 
 
 /* ---------- shortlist put candidates ---------- */
-const SL_UNIVERSE=("BAC C WFC USB TFC KEY RF HBAN CFG SCHW SOFI PYPL SYF ALLY AIG T VZ CMCSA DIS "+   // 100 liquid optionable names, mostly priced under $100
+const SL_UNIVERSE=("BAC C WFC USB TFC KEY RF HBAN CFG SCHW PYPL SYF ALLY AIG T VZ CMCSA DIS "+   // 100 large, liquid optionable names, mostly priced under $250
  "KO MDLZ KHC GIS CPB HRL KR MO KDP XOM OXY DVN SLB HAL KMI WMB APA CTRA EQT BKR COP F GM CSX UPS "+
- "DAL UAL AAL LUV CCL NCLH UBER LYFT PFE MRK BMY GILD CVS BSX VTRS BAX MDT "+
- "INTC MU HPE HPQ CSCO QCOM ON MRVL PLTR SNAP PINS DBX TWLO PATH U NKE SBUX KSS M GAP BBY CHWY EBAY DKNG MGM "+
- "PCG NEE AES FCX NEM AA CLF MOS DOW KGC PLUG AFRM RIVN SOUN").split(" ");
+ "DAL UAL AAL LUV CCL NCLH UBER PFE MRK BMY GILD CVS BSX VTRS BAX MDT "+
+ "INTC MU HPE HPQ CSCO QCOM ON MRVL PLTR SNAP PINS DBX NKE SBUX KSS M GAP BBY CHWY EBAY DKNG MGM "+
+ "PCG NEE AES FCX NEM DOW MOS PEP KMB CL PG WMT TGT SO DUK ABT JNJ CVX EOG").split(" ");
 let slRun={phase:"setup",total:0,checked:0,skipped:0,over:0,zone:0,puts:0,found:0,calls0:0,cancel:false,rows:[],extra:0,note:""},slSel=new Set(),slShowAll=false;
 let slLast=null;try{slLast=JSON.parse(localStorage.getItem(KEY+"-sl")||"null")}catch(e){}
 let slPx={};try{slPx=JSON.parse(localStorage.getItem(KEY+"-slpx")||"{}")||{}}catch(e){}
@@ -2251,6 +2251,10 @@ function slFlags(o){
   if(o.q&&o.q.cls==="poor")f.push({t:"Thin market ("+fn(o.q.sp,0)+"% spread)",w:1});
   else if(o.q&&o.q.cls==="fair")f.push({t:"Fair market",w:0});
   if(o.tier)f.push({t:"Only thin strikes fit",w:1});
+  // company quality, from Alpha Vantage's company overview (a flag marked q counts for the "drop stocks that fail" setting)
+  if(o.mcap>0)f.push(o.mcap<10e9?{t:"Small company ($"+fn(o.mcap/1e9,1)+"B)",w:1,q:1}:{t:"Market cap $"+(o.mcap>=1e12?fn(o.mcap/1e12,1)+"T":fn(o.mcap/1e9,0)+"B"),w:0,ok:1});
+  if(o.pm!=null)f.push(o.pm<=0?{t:"Losing money (profit margin "+fn(o.pm*100,0)+"%)",w:1,q:1}:{t:"Profitable",w:0,ok:1});
+  if(o.beta!=null&&o.beta>1.5)f.push({t:"Volatile stock (beta "+fn(o.beta,1)+")",w:1,q:1});
   return f;
 }
 async function slStart(){
@@ -2258,7 +2262,7 @@ async function slStart(){
   if(!mcp)mcp=await claude.use("mcp").catch(()=>null);
   if(!mcp){setStatus("The shortlist needs the Alpha Vantage connection.","err");return}
   const days=S.put.days,maxA=S.put.maxAssign,uni=slUniverse(),used0=avTotal;greeksModel=false;
-  slRun={phase:"running",limitHits:0,errs:0,total:uni.length,checked:0,skipped:0,over:0,zone:0,puts:0,found:0,calls0:used0,cancel:false,rows:[],step:"A",cur:"",days,maxA,maxPrice:+S.sl.maxPrice,minRet:+S.sl.minRet,lo:+S.sl.lo,hi:+S.sl.hi,startedAt:Date.now()};
+  slRun={phase:"running",qual:!!S.sl.qual,limitHits:0,errs:0,total:uni.length,checked:0,skipped:0,over:0,zone:0,puts:0,found:0,calls0:used0,cancel:false,rows:[],step:"A",cur:"",days,maxA,maxPrice:+S.sl.maxPrice,qual:!!S.sl.qual,minRet:+S.sl.minRet,lo:+S.sl.lo,hi:+S.sl.hi,startedAt:Date.now()};
   slSel=new Set();slShowAll=false;slRender();syncPutBtn();
   const zone=[],tsKeep=new Map();
   try{
@@ -2304,12 +2308,13 @@ async function slStart(){
           const ev=putEval(res,sym);
           if(ev.sug&&ev.sug.per>=slRun.minRet){
             let ov=slPx[sym]&&slPx[sym].ov;
-            if(!ov||Date.now()-ov.at>MAXAGE_MS){
-              try{const op=payloadOf(await call("COMPANY_OVERVIEW",{symbol:sym}));ov={at:Date.now(),ma50:parseFloat(op&&op["50DayMovingAverage"])||null,ma200:parseFloat(op&&op["200DayMovingAverage"])||null};slPx[sym].ov=ov}
-              catch(e){if(["needs_reauth","server_not_connected","selection_required","not_in_manifest","consent_required","approval_required","blocked_by_policy"].includes(e&&e.code))throw e;ov={at:Date.now(),ma50:null,ma200:null}}
+            if(!ov||ov.v!==2||Date.now()-ov.at>MAXAGE_MS){
+              try{const op=payloadOf(await call("COMPANY_OVERVIEW",{symbol:sym})),nv=k=>{const x=parseFloat(op&&op[k]);return isFinite(x)?x:null};
+                ov={v:2,at:Date.now(),ma50:nv("50DayMovingAverage")||null,ma200:nv("200DayMovingAverage")||null,mcap:nv("MarketCapitalization"),pm:nv("ProfitMargin"),beta:nv("Beta"),name:(op&&typeof op.Name==="string"&&op.Name)||"",sector:(op&&typeof op.Sector==="string"&&op.Sector)||""};slPx[sym].ov=ov}
+              catch(e){if(["needs_reauth","server_not_connected","selection_required","not_in_manifest","consent_required","approval_required","blocked_by_policy"].includes(e&&e.code))throw e;ov={v:2,at:Date.now(),ma50:null,ma200:null}}
             }
-            const o={sym,close:res.spot,date:res.date,pos:z.c.pos,exp:res.exp,t:ev.t,k:ev.sug.k,d:ev.sug.d,mid:ev.sug.mid,per:ev.sug.per,ann:ev.sug.ann,cush:ev.sug.cush,q:ev.sug.q,tier:ev.tier,earn:res.earn,earnIn:!!(res.earn&&res.earn<=res.exp),ma50:ov.ma50,ma200:ov.ma200};
-            o.flags=slFlags(o);o.nwarn=o.flags.filter(f=>f.w).length;
+            const o={sym,close:res.spot,date:res.date,pos:z.c.pos,exp:res.exp,t:ev.t,k:ev.sug.k,d:ev.sug.d,mid:ev.sug.mid,per:ev.sug.per,ann:ev.sug.ann,cush:ev.sug.cush,q:ev.sug.q,tier:ev.tier,earn:res.earn,earnIn:!!(res.earn&&res.earn<=res.exp),ma50:ov.ma50,ma200:ov.ma200,mcap:ov.mcap,pm:ov.pm,beta:ov.beta,name:ov.name,sector:ov.sector};
+            o.flags=slFlags(o);o.nwarn=o.flags.filter(f=>f.w).length;o.qfail=o.flags.some(f=>f.q&&f.w);
             slRun.rows.push(o);slRun.found=slRun.rows.length;
           }
         }
@@ -2317,11 +2322,12 @@ async function slStart(){
       slRun.puts++;slRender();
     }
     slPxSave();
+    slRun.dropped=0;if(slRun.qual){const keep=slRun.rows.filter(o=>!o.qfail);slRun.dropped=slRun.rows.length-keep.length;slRun.rows=keep}
     slRun.rows.sort((a,b)=>a.nwarn-b.nwarn||b.ann-a.ann);const have=new Set(S.put.tickers);let nNew=0;   // 15 stocks you do not have yet; the ones already in your list are shown too, without counting
     slRun.qualified=slRun.rows.filter(o=>!have.has(o.sym)).length;slRun.owned=slRun.rows.filter(o=>have.has(o.sym)).length;
     slRun.rows=slRun.rows.filter(o=>have.has(o.sym)||++nNew<=15);   // fewest warning flags first, then the best annual return
     slRun.phase=slRun.cancel?"cancelled":"done";
-    slLast={at:Date.now(),qualified:slRun.qualified,owned:slRun.owned,days,maxA,maxPrice:slRun.maxPrice,minRet:slRun.minRet,lo:slRun.lo,hi:slRun.hi,total:slRun.total,checked:slRun.checked,zone:slRun.zone,skipped:slRun.skipped,over:slRun.over,calls:avTotal-slRun.calls0,rows:slRun.rows};
+    slLast={at:Date.now(),dropped:slRun.dropped,qualified:slRun.qualified,owned:slRun.owned,days,maxA,maxPrice:slRun.maxPrice,minRet:slRun.minRet,lo:slRun.lo,hi:slRun.hi,total:slRun.total,checked:slRun.checked,zone:slRun.zone,skipped:slRun.skipped,over:slRun.over,calls:avTotal-slRun.calls0,rows:slRun.rows};
     try{localStorage.setItem(KEY+"-sl",JSON.stringify(slLast))}catch(e){}
   }catch(e){slRun.phase="error";slRun.note=errMsg(e)}
   finally{avCtx="";slPxSave();slRender();syncPutBtn();renderPutSoon();putDerived()}
@@ -2358,9 +2364,9 @@ function slRender(){
     const L=run.phase==="setup"?slLast:{...slLast,rows:run.rows},rows=L.rows,show=rows,qual=L.qualified||rows.length;
     const inList=t=>S.put.tickers.includes(t),ageTxt=new Date(L.at).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
     const head=`<div style="font-weight:600">${run.phase==="cancelled"?"Stopped early. ":""}${qual>rows.length-(L.owned||0)?"Best "+(rows.length-(L.owned||0))+" new stocks of "+qual+" that passed":qual+" new candidate"+(qual===1?"":"s")}${L.owned?" (plus "+L.owned+" already in your list)":""}</div>
-      ${sup(`Checked ${L.checked} of ${L.total} stocks (${L.over} over $${L.maxPrice}, ${L.zone} in the ${L.lo}–${L.hi}% band zone${L.skipped?", "+L.skipped+" skipped for missing or odd data":""}) · ${L.days}-day puts, up to ${L.maxA}% chance of assignment, at least ${L.minRet}% return · ${L.calls} Alpha Vantage calls · ${ageTxt}. Best first: fewest warnings, then highest annual return. End-of-day data; not advice.`)}`;
+      ${sup(`Checked ${L.checked} of ${L.total} stocks (${L.over} over $${L.maxPrice}, ${L.zone} in the ${L.lo}–${L.hi}% band zone${L.skipped?", "+L.skipped+" skipped for missing or odd data":""}${L.dropped?", "+L.dropped+" dropped by the quality check":""}) · ${L.days}-day puts, up to ${L.maxA}% chance of assignment, at least ${L.minRet}% return · ${L.calls} Alpha Vantage calls · ${ageTxt}. Best first: fewest warnings, then highest annual return. End-of-day data; not advice.`)}`;
     const list=show.length?show.map(o=>{const dis=inList(o.sym);
-      return `<label class="slrow${dis?" dis":""}"><input type="checkbox" data-sl="${esc(o.sym)}"${dis?" disabled":""}${slSel.has(o.sym)?" checked":""}><div><span class="sym">${esc(o.sym)}</span> <span class="sub">$${fn(o.close)} · band ${fn(o.pos,0)}% ${dis?'· <b>In your watch list</b>':""}</span>
+      return `<label class="slrow${dis?" dis":""}"><input type="checkbox" data-sl="${esc(o.sym)}"${dis?" disabled":""}${slSel.has(o.sym)?" checked":""}><div><span class="sym">${esc(o.sym)}</span> <span class="sub">${o.name?esc(o.name)+" · ":""}$${fn(o.close)} · band ${fn(o.pos,0)}% ${dis?'· <b>In your watch list</b>':""}</span>
         <div class="sub">$${fn(o.k,o.k%1?1:0)} put · ${fn(o.d*100,0)}% assigned · ${fm(o.mid*100)} (${fn(o.per,2)}% in ${o.t} days, ${fn(o.ann,0)}% a year) · ${fn(o.cush,1)}% cushion</div>
         <div>${o.flags.map(f=>`<span class="slflag${f.w?" warn":f.ok?" ok":""}">${esc(f.t)}</span>`).join("")}</div></div></label>`}).join(""):`<div class="empty" style="margin-top:8px">No stock passed. Try a higher max price, a higher assignment limit on this tab, or a shorter expiry.</div>`;
     el.innerHTML=head+list+
@@ -2383,11 +2389,12 @@ function slRender(){
       <label class="f">Band zone from (%)<input type="number" id="slLo" inputmode="decimal" min="0" max="100" step="5" value="${S.sl.lo}"></label>
       <label class="f">Band zone to (%)<input type="number" id="slHi" inputmode="decimal" min="0" max="100" step="5" value="${S.sl.hi}"></label>
     </div>
+    <label class="chk" style="margin-top:10px"><input type="checkbox" id="slQual"${S.sl.qual?" checked":""}> Drop stocks that fail a quality check (market cap under $10B, losing money, or beta over 1.5)</label>
     <label class="f" style="margin-top:10px">Extra symbols to include (optional)<input type="text" id="slExtra" value="${esc(S.sl.extra)}" placeholder="e.g. DAL, UAL" autocapitalize="characters" autocomplete="off" spellcheck="false"></label>
     <div class="hint" id="slEst">${`Will check about ${uni.length} liquid stocks (a built-in list, your extra symbols and every symbol in your three lists). Roughly ${est} to ${est+2} minutes at ${per} Alpha Vantage calls a minute: one price call per stock, then about three calls for each one inside the band zone. Prices are end-of-day closes. Needs a premium key.`}</div>
     <div class="slfoot"><button type="button" class="primary" id="slGo">Start search</button><button type="button" id="slHide">Close</button></div>`;
-  const rd=()=>{S.sl.maxPrice=+$("slMax").value||250;S.sl.minRet=+$("slRet").value||0;S.sl.lo=Math.max(0,+$("slLo").value||0);S.sl.hi=Math.min(100,+$("slHi").value||100);S.sl.extra=$("slExtra").value;save()};
-  ["slMax","slRet","slLo","slHi","slExtra"].forEach(i=>$(i).onchange=()=>{rd();const n=slUniverse().length,e=$("slEst");if(e)e.textContent=e.textContent.replace(/about \d+ liquid/,"about "+n+" liquid")});   // no redraw: it would swallow the click on Start search
+  const rd=()=>{S.sl.maxPrice=+$("slMax").value||250;S.sl.minRet=+$("slRet").value||0;S.sl.lo=Math.max(0,+$("slLo").value||0);S.sl.hi=Math.min(100,+$("slHi").value||100);S.sl.extra=$("slExtra").value;S.sl.qual=$("slQual").checked;save()};
+  ["slMax","slRet","slLo","slHi","slExtra","slQual"].forEach(i=>$(i).onchange=()=>{rd();const n=slUniverse().length,e=$("slEst");if(e)e.textContent=e.textContent.replace(/about \d+ liquid/,"about "+n+" liquid")});   // no redraw: it would swallow the click on Start search
   $("slGo").onclick=()=>{rd();slStart()};$("slHide").onclick=slClose;
 }
 function slAddBtn(){const b=$("slAdd");if(!b)return;b.disabled=!slSel.size;b.textContent=slSel.size?`Add ${slSel.size} selected to watch list`:"Add selected to watch list"}
