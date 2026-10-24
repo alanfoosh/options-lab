@@ -1177,10 +1177,11 @@ async function ccFetch(sym,d,isNew){
     if(calls.length){got={exp,calls};break}
   }
   markMiss("cc",S.cc.days,!!got);
-  if(!got){ccChain=[];S.cc.expiry=f;S.cc.expVerified="none";if(isNew){ccSetByPct([0,0.05,0.10],false);ccApplySaved(sym)}else S.cc.strikes.forEach((r,i)=>ccFill(i));return false}
+  if(!got){ccChain=[];S.cc.expiry=f;S.cc.expVerified="none";if(isNew)ccSetByPct([0,0.05,0.10],false);else S.cc.strikes.forEach((r,i)=>ccFill(i));ccPickDefault(sym,isNew);return false}
   const wasSeed=S.cc.expVerified==="seed";
   ccChain=mapCalls(got.calls,d,got.exp,"call",S.spot);S.cc.expiry=got.exp;S.cc.expVerified="chain";
-  if(isNew||wasSeed){ccSetByPct([0,0.05,0.10],false);ccApplySaved(sym)}else S.cc.strikes.forEach((r,i)=>ccFill(i));
+  if(isNew||wasSeed)ccSetByPct([0,0.05,0.10],false);else S.cc.strikes.forEach((r,i)=>ccFill(i));
+  ccPickDefault(sym,isNew||wasSeed);
   saveCcChain();return true;
 }
 async function ccRefetch(recenter){ // after a new expiry chip: fetch only that chain
@@ -1377,8 +1378,8 @@ function ccSuggestNote(){
   if(c.quote&&c.q.cls)why.push(c.q.txt.toLowerCase()+" market");
   if(sg.R)why.push(c.k>=sg.R.p?`above resistance $${fn(sg.R.p,0)}`:`below resistance $${fn(sg.R.p,0)}`);
   why.push(c.k>=sg.em.hi?`outside the expected move ($${fn(sg.em.hi,0)})`:`inside the expected move ($${fn(sg.em.hi,0)})`);
-  const cur=Math.abs(S.cc.strikes[0].strike-c.k)<0.001;
-  el.innerHTML=`<b>Suggested: $${fn(c.k,c.k%1?1:0)} call</b>${cur?" (selected)":""}. ${why.join(", ")}.${sg.tier?" No liquid strike fits, so this one is thin.":""}${c.quote?"":" Model estimate; refresh for quotes."} The highest premium that stays under your limit. Not advice.`;
+  const cur=Math.abs(S.cc.strikes[0].strike-c.k)<0.001,sel=S.cc.strikes[0],sd=ccDelta(sel);
+  el.innerHTML=`<b>Suggested: $${fn(c.k,c.k%1?1:0)} call</b>${cur?" (selected)":""}. ${why.join(", ")}.${sg.tier?" No liquid strike fits, so this one is thin.":""}${c.quote?"":" Model estimate; refresh for quotes."} The highest premium that stays under your limit.${cur||!(sel.strike>0)?"":` You have $${fn(sel.strike,sel.strike%1?1:0)} selected${sd!=null?" ("+fn(sd*100,0)+"% chance of being called away)":""}; tap Suggested to use ${fn(c.k,c.k%1?1:0)}.`} Not advice.`;
 }
 function ccRemember(){const k=S.cc.strikes[0].strike;if(S.ticker&&k>0&&S.ccK[S.ticker]!==k){S.ccK[S.ticker]=k;basisSave()}}
 function ccApplySaved(sym){ // the strike you chose last time for this ticker (nearest listed strike if that one is gone)
@@ -1386,7 +1387,14 @@ function ccApplySaved(sym){ // the strike you chose last time for this ticker (n
   let use=k;if(ccChain.length){let b=null;ccChain.forEach(c=>{if(!b||Math.abs(c.k-k)<Math.abs(b.k-k))b=c});if(b)use=b.k}
   const r=S.cc.strikes[0];r.on=true;r.strike=use;ccFill(0);
 }
-function ccPickStrike(k){const r=S.cc.strikes[0];r.on=true;r.strike=k;ccFill(0);ccRemember();ccSync();save();render()}
+function ccPickDefault(sym,fresh){ // strike you chose yourself for this ticker wins; otherwise follow the suggestion, so the selected strike and the suggestion agree after every refresh
+  if(S.ccK[sym]>0){if(fresh)ccApplySaved(sym);return}
+  const sg=ccSuggestion();if(!sg)return;
+  const r=S.cc.strikes[0];r.on=true;r.strike=sg.c.k;ccFill(0);
+}
+function ccPickStrike(k,follow){const r=S.cc.strikes[0];r.on=true;r.strike=k;ccFill(0);
+  if(follow){if(S.ccK[S.ticker]){delete S.ccK[S.ticker];basisSave()}}else ccRemember();   // "Suggested" goes back to following the suggestion
+  ccSync();save();render()}
 
 function ccPickChart(sel){
   const cands=ccCands(),t=ccDaysT(),sg=ccSuggestion(cands),tgt=(S.cc.maxAssign||20)/100,em=ccExpMove(),R=S.srOn?srList().filter(l=>l.side==="R"&&l.p>S.spot):[];
@@ -1593,7 +1601,7 @@ $("ccDays").addEventListener("click",e=>{const b=e.target.closest("button[data-d
   S.cc.days=+b.dataset.days;S.cc.expiry=ccTries(S.dataDate,S.cc.days)[0];S.cc.expVerified="none";ccChain=[];
   S.cc.strikes.forEach((r,i)=>{if(r.strike>0)ccFill(i)});ccSync();save();schedule();ccRefetch()});
 document.querySelectorAll(".ccDeltaBtn").forEach(b=>b.onclick=()=>{
-  if(b.dataset.suggest){const sg=ccSuggestion();if(!sg){setStatus("No strike meets your limit for this expiry.","err");return}ccPickStrike(sg.c.k);return}
+  if(b.dataset.suggest){const sg=ccSuggestion();if(!sg){setStatus("No strike meets your limit for this expiry.","err");return}ccPickStrike(sg.c.k,true);return}
   if(b.dataset.delta)ccSetByDelta([+b.dataset.delta]);else ccSetByPct([+b.dataset.pct],false);
   ccRemember();ccSync();save();schedule()});
 [["cvPick","pick"],["cvHold","hold"],["cvExp","exp"]].forEach(([id,v])=>$(id).onclick=()=>{S.cc.view=v;ccDerived();save();render()});
