@@ -209,7 +209,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 
 <section class="panel" aria-label="Stock">
   <div class="topgrid" id="stockGrid">
-    <label class="f">Symbol<input type="text" id="ticker" autocapitalize="characters" autocomplete="off" spellcheck="false"></label>
+    <label class="f">Symbol<input type="text" id="ticker" readonly tabindex="-1" style="background:transparent;border-color:transparent;font-weight:700;padding-left:2px" aria-describedby="favRow"></label>
     <label class="f">Starting stock price ($)<input type="number" id="spot" inputmode="decimal" step="0.01" min="0"></label>
     <label class="f">Data date<input type="date" id="dataDate"></label>
     <button type="button" class="primary" id="refresh">Refresh end-of-day data</button>
@@ -224,7 +224,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 </section>
 
 
-<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 41 (built 2026-10-24)</p></div>
+<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 42 (built 2026-10-25)</p></div>
 <div class="stack" id="leapTab">
 <section class="panel pick" aria-label="LEAP and strikes">
   <fieldset>
@@ -541,7 +541,7 @@ let S=DEF();
 try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);if(o&&o.strikes&&o.strikes.length===3)S=Object.assign(DEF(),o)}}catch(e){}
 try{const tk=localStorage.getItem(KEY+"-ticker");if(tk)S.ticker=tk}catch(e){}
 S.put=Object.assign({tickers:[S.ticker||"CRWD"],days:30,maxAssign:20,hideThin:false,sort:{col:"ann",dir:-1},open:null,picks:{}},S.put||{});try{const wl=JSON.parse(localStorage.getItem(KEY+"-watch")||"null");if(Array.isArray(wl)&&wl.length)S.put.tickers=wl}catch(e){}
-S.sl=Object.assign({maxPrice:250,minRet:1.5,lo:15,hi:35,extra:""},S.sl||{});
+S.sl=Object.assign({maxPrice:250,minRet:1.5,lo:15,hi:35,extra:"",minVol:50},S.sl||{});
 if(S.sl.v!==2){S.sl.v=2;S.sl.maxPrice=250}   // one-time: the default stock price limit moved from $100 to $250
 S.favs=S.favs&&!Array.isArray(S.favs)?S.favs:{leap:[S.ticker||"CRWD"],cc:[S.ticker||"CRWD"]};try{const fv=JSON.parse(localStorage.getItem(KEY+"-favs")||"null");if(fv&&Array.isArray(fv.leap)&&Array.isArray(fv.cc))S.favs=fv}catch(e){}
 S.shares=S.shares||{};S.ccK=S.ccK||{};if(!Object.keys(S.shares).length&&S.cc.shares>100&&S.ticker)S.shares[S.ticker]=S.cc.shares;   // shares and chosen strike are kept per ticker
@@ -2227,11 +2227,14 @@ function ccScanWire(){
 
 
 /* ---------- shortlist put candidates ---------- */
-const SL_UNIVERSE=("BAC C WFC USB TFC KEY RF HBAN CFG SCHW PYPL SYF ALLY AIG T VZ CMCSA DIS "+   // 100 large, liquid optionable names, mostly priced under $250
+const SL_UNIVERSE=("BAC C WFC USB TFC KEY RF HBAN CFG SCHW PYPL SYF ALLY AIG T VZ CMCSA DIS "+   // 200 large, heavily traded optionable names, mostly priced under $250
  "KO MDLZ KHC GIS CPB HRL KR MO KDP XOM OXY DVN SLB HAL KMI WMB APA CTRA EQT BKR COP F GM CSX UPS "+
  "DAL UAL AAL LUV CCL NCLH UBER PFE MRK BMY GILD CVS BSX VTRS BAX MDT "+
  "INTC MU HPE HPQ CSCO QCOM ON MRVL PLTR SNAP PINS DBX NKE SBUX KSS M GAP BBY CHWY EBAY DKNG MGM "+
- "PCG NEE AES FCX NEM DOW MOS PEP KMB CL PG WMT TGT SO DUK ABT JNJ CVX EOG").split(" ");
+ "PCG NEE AES FCX NEM DOW MOS PEP KMB CL PG WMT TGT SO DUK ABT JNJ CVX EOG "+
+ "MS BK BX KKR APO MET PRU AFL ICE NDAQ COF AMD NVDA AAPL GOOGL AMZN TXN AMAT LRCX ADI MCHP GLW DELL IBM SHOP PANW FTNT DDOG ZM ROKU TTD ABNB CRM ORCL "+
+ "ABBV ZTS DHR BIIB MRNA DXCM CAH GEHC LOW TJX ROST DG DLTR CMG YUM LULU EL TSN ADM STZ KVUE HSY MNST BA HON RTX MMM EMR JCI CARR OTIS WM UNP FDX PCAR RCL EXPE "+
+ "MPC VLO PSX FANG OKE ET EPD NUE STLD ALB DD CF IP CTVA D EXC XEL SRE AEP PEG O VICI PLD AMT CCI SPG TMUS WBD LVS").split(" ");
 let slRun={phase:"setup",total:0,checked:0,skipped:0,over:0,zone:0,puts:0,found:0,calls0:0,cancel:false,rows:[],extra:0,note:""},slSel=new Set(),slShowAll=false;
 let slLast=null;try{slLast=JSON.parse(localStorage.getItem(KEY+"-sl")||"null")}catch(e){}
 let slPx={};try{slPx=JSON.parse(localStorage.getItem(KEY+"-slpx")||"{}")||{}}catch(e){}
@@ -2241,15 +2244,16 @@ function slUniverse(){
   return [...new Set(SL_UNIVERSE.concat(extra,own))];
 }
 function slBand(ts){ // 20-day average +/- 2 standard deviations of closes; position 0% = lower band, 50% = average, 100% = upper band
-  const rows=Object.keys(ts).sort().map(d=>({d,c:parseFloat(ts[d]["4. close"])})).filter(r=>r.c>0);
+  const rows=Object.keys(ts).sort().map(d=>({d,c:parseFloat(ts[d]["4. close"]),v:parseFloat(ts[d]["5. volume"])})).filter(r=>r.c>0);
   if(rows.length<30)return {skip:"too little history"};
   for(let i=1;i<rows.length;i++){const q=rows[i].c/rows[i-1].c;if(q>1.8||q<0.55)return {skip:"possible split"}}
   const w=rows.slice(-20).map(r=>r.c),m=w.reduce((a,b)=>a+b,0)/20,sd=Math.sqrt(w.reduce((a,b)=>a+(b-m)*(b-m),0)/20);
   if(!(sd>0))return {skip:"no movement"};
   const last=rows[rows.length-1],lo=m-2*sd,hi=m+2*sd,s50=rows.length>=50?rows.slice(-50).reduce((a,r)=>a+r.c,0)/50:null;
-  return {date:last.d,close:last.c,pos:(last.c-lo)/(hi-lo)*100,sma20:m,sma50:s50};
+  const vr=rows.slice(-20).filter(r=>r.v>0),dvol=vr.length?vr.reduce((a,r)=>a+r.c*r.v,0)/vr.length:null;   // average dollars traded a day, last 20 sessions
+  return {date:last.d,close:last.c,pos:(last.c-lo)/(hi-lo)*100,sma20:m,sma50:s50,dvol};
 }
-function slFreshPx(c){if(!c||!c.date)return false;const age=Date.now()-c.at;if(age>MAXAGE_MS)return false;return c.date>=nySession()||age<RECHECK_MS}
+function slFreshPx(c){if(!c||!c.date||c.dvol===undefined)return false;const age=Date.now()-c.at;if(age>MAXAGE_MS)return false;return c.date>=nySession()||age<RECHECK_MS}
 const slPct=(a,b)=>fn((a/b-1)*100,0)+"%";
 function slFlags(o){
   const f=[];
@@ -2259,10 +2263,9 @@ function slFlags(o){
   if(o.q&&o.q.cls==="poor")f.push({t:"Thin market ("+fn(o.q.sp,0)+"% spread)",w:1});
   else if(o.q&&o.q.cls==="fair")f.push({t:"Fair market",w:0});
   if(o.tier)f.push({t:"Only thin strikes fit",w:1});
-  // company quality, from Alpha Vantage's company overview (a flag marked q counts for the "drop stocks that fail" setting)
-  if(o.mcap>0)f.push(o.mcap<10e9?{t:"Small company ($"+fn(o.mcap/1e9,1)+"B)",w:1,q:1}:{t:"Market cap $"+(o.mcap>=1e12?fn(o.mcap/1e12,1)+"T":fn(o.mcap/1e9,0)+"B"),w:0,ok:1});
-  if(o.pm!=null)f.push(o.pm<=0?{t:"Losing money (profit margin "+fn(o.pm*100,0)+"%)",w:1,q:1}:{t:"Profitable",w:0,ok:1});
-  if(o.beta!=null&&o.beta>1.5)f.push({t:"Volatile stock (beta "+fn(o.beta,1)+")",w:1,q:1});
+  // how much the stock trades: 20-day average of close x shares (a flag marked q counts for the "drop low volume" setting)
+  if(o.dvol>0){const dv=o.dvol>=1e9?"$"+fn(o.dvol/1e9,1)+"B":"$"+fn(o.dvol/1e6,0)+"M",lim=(+S.sl.minVol||50)*1e6;
+    f.push(o.dvol<lim?{t:"Low trading volume ("+dv+" a day)",w:1,q:1}:{t:dv+" traded a day",w:0,ok:1})}
   return f;
 }
 async function slStart(){
@@ -2301,8 +2304,10 @@ async function slStart(){
     slPxSave();
     // drop stale symbols (last bar much older than the newest)
     const newest=zone.reduce((m,z)=>z.c.date>m?z.c.date:m,"");
-    const live=zone.filter(z=>z.c.date>=addDays(newest,-5));
+    let live=zone.filter(z=>z.c.date>=addDays(newest,-5));
     slRun.skipped+=zone.length-live.length;slRun.zone=live.length;
+    slRun.dropped0=0;if(slRun.qual){const lim=(+S.sl.minVol||50)*1e6,n0=live.length;live=live.filter(z=>!(z.c.dvol>0&&z.c.dvol<lim));slRun.dropped0=n0-live.length}   // low volume: skip the put calls too
+    slRun.toCheck=live.length;
     // step B: puts, earnings and trend for each survivor
     slRun.step="B";
     for(const z of live){
@@ -2321,7 +2326,7 @@ async function slStart(){
                 ov={v:2,at:Date.now(),ma50:nv("50DayMovingAverage")||null,ma200:nv("200DayMovingAverage")||null,mcap:nv("MarketCapitalization"),pm:nv("ProfitMargin"),beta:nv("Beta"),name:(op&&typeof op.Name==="string"&&op.Name)||"",sector:(op&&typeof op.Sector==="string"&&op.Sector)||""};slPx[sym].ov=ov}
               catch(e){if(["needs_reauth","server_not_connected","selection_required","not_in_manifest","consent_required","approval_required","blocked_by_policy"].includes(e&&e.code))throw e;ov={v:2,at:Date.now(),ma50:null,ma200:null}}
             }
-            const o={sym,close:res.spot,date:res.date,pos:z.c.pos,exp:res.exp,t:ev.t,k:ev.sug.k,d:ev.sug.d,mid:ev.sug.mid,per:ev.sug.per,ann:ev.sug.ann,cush:ev.sug.cush,q:ev.sug.q,tier:ev.tier,earn:res.earn,earnIn:!!(res.earn&&res.earn<=res.exp),ma50:ov.ma50,ma200:ov.ma200,mcap:ov.mcap,pm:ov.pm,beta:ov.beta,name:ov.name,sector:ov.sector};
+            const o={sym,close:res.spot,date:res.date,pos:z.c.pos,exp:res.exp,t:ev.t,k:ev.sug.k,d:ev.sug.d,mid:ev.sug.mid,per:ev.sug.per,ann:ev.sug.ann,cush:ev.sug.cush,q:ev.sug.q,tier:ev.tier,earn:res.earn,earnIn:!!(res.earn&&res.earn<=res.exp),ma50:ov.ma50,ma200:ov.ma200,dvol:z.c.dvol,name:ov.name,sector:ov.sector};
             o.flags=slFlags(o);o.nwarn=o.flags.filter(f=>f.w).length;o.qfail=o.flags.some(f=>f.q&&f.w);
             slRun.rows.push(o);slRun.found=slRun.rows.length;
           }
@@ -2330,7 +2335,7 @@ async function slStart(){
       slRun.puts++;slRender();
     }
     slPxSave();
-    slRun.dropped=0;if(slRun.qual){const keep=slRun.rows.filter(o=>!o.qfail);slRun.dropped=slRun.rows.length-keep.length;slRun.rows=keep}
+    slRun.dropped=slRun.dropped0||0;if(slRun.qual){const keep=slRun.rows.filter(o=>!o.qfail);slRun.dropped+=slRun.rows.length-keep.length;slRun.rows=keep}
     slRun.rows.sort((a,b)=>a.nwarn-b.nwarn||b.ann-a.ann);const have=new Set(S.put.tickers);let nNew=0;   // 15 stocks you do not have yet; the ones already in your list are shown too, without counting
     slRun.qualified=slRun.rows.filter(o=>!have.has(o.sym)).length;slRun.owned=slRun.rows.filter(o=>have.has(o.sym)).length;
     slRun.rows=slRun.rows.filter(o=>have.has(o.sym)||++nNew<=15);   // fewest warning flags first, then the best annual return
@@ -2351,7 +2356,7 @@ function slRender(){
   const sup=(t)=>`<div class="hint">${t}</div>`;
   const run=slRun;
   if(run.phase==="running"){
-    const pct=run.step==="A"?run.checked/run.total*70:70+(run.zone?run.puts/run.zone*30:30);
+    const pct=run.step==="A"?run.checked/run.total*70:70+(run.toCheck?run.puts/run.toCheck*30:30);
     const el2=Math.round((Date.now()-run.startedAt)/1000);
     if(!$("slCancel")){   // build once, then only update the text, so the buttons stay put and can be clicked
       el.innerHTML=`<div style="font-weight:600" id="slStep"></div>
@@ -2363,7 +2368,7 @@ function slRender(){
       $("slCancel").onclick=()=>{slRun.cancel=true;$("slCancel").disabled=true;$("slCancel").textContent="Stopping…"};
       $("slHide").onclick=slClose;
     }
-    $("slStep").textContent=run.step==="A"?`Step 1 of 2: checking prices (${run.checked} of ${run.total})`:`Step 2 of 2: checking puts (${run.puts} of ${run.zone})`;
+    $("slStep").textContent=run.step==="A"?`Step 1 of 2: checking prices (${run.checked} of ${run.total})`:`Step 2 of 2: checking puts (${run.puts} of ${run.toCheck??run.zone})`;
     $("slFill").style.width=pct.toFixed(0)+"%";$("slPb").setAttribute("aria-valuenow",Math.round(pct));
     $("slStats").innerHTML=`Now: <b>${esc(run.cur)}</b> · ${run.over} over $${run.maxPrice} · ${run.zone} in the band zone · ${run.found} with a usable put · ${avTotal-run.calls0} Alpha Vantage calls in total (${avLog.filter(t=>Date.now()-t<60000).length} in the last minute, never more than ${AV_PER_MIN} allowed) · ${run.errs} errors · ${run.limitHits} limit notices · ${Math.floor(el2/60)}:${String(el2%60).padStart(2,"0")} elapsed`;
     return;
@@ -2372,7 +2377,7 @@ function slRender(){
     const L=run.phase==="setup"?slLast:{...slLast,rows:run.rows},rows=L.rows,show=rows,qual=L.qualified||rows.length;
     const inList=t=>S.put.tickers.includes(t),ageTxt=new Date(L.at).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
     const head=`<div style="font-weight:600">${run.phase==="cancelled"?"Stopped early. ":""}${qual>rows.length-(L.owned||0)?"Best "+(rows.length-(L.owned||0))+" new stocks of "+qual+" that passed":qual+" new candidate"+(qual===1?"":"s")}${L.owned?" (plus "+L.owned+" already in your list)":""}</div>
-      ${sup(`Checked ${L.checked} of ${L.total} stocks (${L.over} over $${L.maxPrice}, ${L.zone} in the ${L.lo}–${L.hi}% band zone${L.skipped?", "+L.skipped+" skipped for missing or odd data":""}${L.dropped?", "+L.dropped+" dropped by the quality check":""}) · ${L.days}-day puts, up to ${L.maxA}% chance of assignment, at least ${L.minRet}% return · ${L.calls} Alpha Vantage calls · ${ageTxt}. Best first: fewest warnings, then highest annual return. End-of-day data; not advice.`)}`;
+      ${sup(`Checked ${L.checked} of ${L.total} stocks (${L.over} over $${L.maxPrice}, ${L.zone} in the ${L.lo}–${L.hi}% band zone${L.skipped?", "+L.skipped+" skipped for missing or odd data":""}${L.dropped?", "+L.dropped+" dropped for low trading volume":""}) · ${L.days}-day puts, up to ${L.maxA}% chance of assignment, at least ${L.minRet}% return · ${L.calls} Alpha Vantage calls · ${ageTxt}. Best first: fewest warnings, then highest annual return. End-of-day data; not advice.`)}`;
     const list=show.length?show.map(o=>{const dis=inList(o.sym);
       return `<label class="slrow${dis?" dis":""}"><input type="checkbox" data-sl="${esc(o.sym)}"${dis?" disabled":""}${slSel.has(o.sym)?" checked":""}><div><span class="sym">${esc(o.sym)}</span> <span class="sub">${o.name?esc(o.name)+" · ":""}$${fn(o.close)} · band ${fn(o.pos,0)}% ${dis?'· <b>In your watch list</b>':""}</span>
         <div class="sub">$${fn(o.k,o.k%1?1:0)} put · ${fn(o.d*100,0)}% assigned · ${fm(o.mid*100)} (${fn(o.per,2)}% in ${o.t} days, ${fn(o.ann,0)}% a year) · ${fn(o.cush,1)}% cushion</div>
@@ -2397,12 +2402,13 @@ function slRender(){
       <label class="f">Band zone from (%)<input type="number" id="slLo" inputmode="decimal" min="0" max="100" step="5" value="${S.sl.lo}"></label>
       <label class="f">Band zone to (%)<input type="number" id="slHi" inputmode="decimal" min="0" max="100" step="5" value="${S.sl.hi}"></label>
     </div>
-    <label class="chk" style="margin-top:10px"><input type="checkbox" id="slQual"${S.sl.qual?" checked":""}> Drop stocks that fail a quality check (market cap under $10B, losing money, or beta over 1.5)</label>
+    <label class="f" style="margin-top:10px">Lowest trading volume ($ millions a day)<input type="number" id="slVol" inputmode="decimal" min="0" step="10" value="${S.sl.minVol}"></label>
+    <label class="chk" style="margin-top:6px"><input type="checkbox" id="slQual"${S.sl.qual?" checked":""}> Drop stocks that trade less than this (otherwise they are flagged and ranked lower)</label>
     <label class="f" style="margin-top:10px">Extra symbols to include (optional)<input type="text" id="slExtra" value="${esc(S.sl.extra)}" placeholder="e.g. DAL, UAL" autocapitalize="characters" autocomplete="off" spellcheck="false"></label>
     <div class="hint" id="slEst">${`Will check about ${uni.length} liquid stocks (a built-in list, your extra symbols and every symbol in your three lists). Roughly ${est} to ${est+2} minutes at ${per} Alpha Vantage calls a minute: one price call per stock, then about three calls for each one inside the band zone. Prices are end-of-day closes. Needs a premium key.`}</div>
     <div class="slfoot"><button type="button" class="primary" id="slGo">Start search</button><button type="button" id="slHide">Close</button></div>`;
-  const rd=()=>{S.sl.maxPrice=+$("slMax").value||250;S.sl.minRet=+$("slRet").value||0;S.sl.lo=Math.max(0,+$("slLo").value||0);S.sl.hi=Math.min(100,+$("slHi").value||100);S.sl.extra=$("slExtra").value;S.sl.qual=$("slQual").checked;save()};
-  ["slMax","slRet","slLo","slHi","slExtra","slQual"].forEach(i=>$(i).onchange=()=>{rd();const n=slUniverse().length,e=$("slEst");if(e)e.textContent=e.textContent.replace(/about \d+ liquid/,"about "+n+" liquid")});   // no redraw: it would swallow the click on Start search
+  const rd=()=>{S.sl.maxPrice=+$("slMax").value||250;S.sl.minRet=+$("slRet").value||0;S.sl.lo=Math.max(0,+$("slLo").value||0);S.sl.hi=Math.min(100,+$("slHi").value||100);S.sl.extra=$("slExtra").value;S.sl.qual=$("slQual").checked;S.sl.minVol=Math.max(0,+$("slVol").value||0);save()};
+  ["slMax","slRet","slLo","slHi","slExtra","slQual","slVol"].forEach(i=>$(i).onchange=()=>{rd();const n=slUniverse().length,e=$("slEst");if(e)e.textContent=e.textContent.replace(/about \d+ liquid/,"about "+n+" liquid")});   // no redraw: it would swallow the click on Start search
   $("slGo").onclick=()=>{rd();slStart()};$("slHide").onclick=slClose;
 }
 function slAddBtn(){const b=$("slAdd");if(!b)return;b.disabled=!slSel.size;b.textContent=slSel.size?`Add ${slSel.size} selected to watch list`:"Add selected to watch list"}
@@ -2435,20 +2441,21 @@ function holdRender(el,L,cur,saved){ // covered call list: one row per ticker, w
       `<input type="number" inputmode="decimal" step="0.01" min="0" placeholder="today" data-hbasis="${esc(t)}" value="${S.basis[t]||""}" aria-label="Cost basis per share of ${esc(t)}">`+
       `<button type="button" class="rm" data-favrm="${esc(t)}" aria-label="Remove ${esc(t)} from the list">×</button>`).join("")+`</div>`
     :`<div class="hint" style="margin:4px 0">Empty. Add a symbol below.</div>`;
-  if(cur&&!saved)el.insertAdjacentHTML("beforeend",`<div style="margin-top:8px"><button type="button" class="add" id="favAdd">☆ Save ${esc(cur)}</button></div>`);
 }
 function favRender(){
   const el=$("favList");if(!el)return;
   const L=favL(),cur=(S.ticker||"").toUpperCase(),saved=L.includes(cur);
   if(S.tab==="cc"){holdRender(el,L,cur,saved);return}
   el.className="wl fav";
-  el.innerHTML=pillList(S.tab==="cc"?"Covered call list":"LEAP list",L,cur,"data-fav","data-favrm","Empty. Add a symbol below.")+
-    (cur&&!saved?`<button type="button" class="add" id="favAdd">☆ Save ${esc(cur)}</button>`:"");
+  el.innerHTML=pillList(S.tab==="cc"?"Covered call list":"LEAP list",L,cur,"data-fav","data-favrm","Empty. Add a symbol below.");
 }
-function favAddMany(){
-  const k=S.tab==="cc"?"cc":"leap",add=symList($("favAddIn").value).filter(t=>!S.favs[k].includes(t));
-  $("favAddIn").value="";if(!add.length)return;
-  S.favs[k]=S.favs[k].concat(add).slice(0,40);favSave();save();favRender();
+function favAddMany(){ // the one way to add symbols on the LEAP and Covered calls tabs; the first one typed is opened
+  const k=S.tab==="cc"?"cc":"leap",raw=symList($("favAddIn").value),add=raw.filter(t=>!S.favs[k].includes(t));
+  $("favAddIn").value="";if(!raw.length)return;
+  if(add.length){S.favs[k]=S.favs[k].concat(add).slice(0,40);favSave();save()}
+  const t=raw[0];
+  if(t!==S.ticker||t!==dataTicker()){$("ticker").value=t;$("ticker").dispatchEvent(new Event("change",{bubbles:true}))}
+  favRender();
 }
 $("favAddBtn").onclick=favAddMany;
 $("favAddIn").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();favAddMany()}});
@@ -2458,10 +2465,9 @@ $("favList").addEventListener("change",e=>{
   if(bs){const t=bs.dataset.hbasis,b=num(bs.value);if(b>0)S.basis[t]=b;else delete S.basis[t];basisSave();save();if(t===S.ticker){ccSync();render()}}
 });
 $("favList").addEventListener("click",e=>{
-  const p=e.target.closest("[data-fav]"),rm=e.target.closest("[data-favrm]"),add=e.target.closest("#favAdd");
+  const p=e.target.closest("[data-fav]"),rm=e.target.closest("[data-favrm]");
   const k=S.tab==="cc"?"cc":"leap";
   if(rm){S.favs[k]=S.favs[k].filter(t=>t!==rm.dataset.favrm);favSave();save();favRender();return}
-  if(add){const t=(S.ticker||"").toUpperCase();if(t&&!S.favs[k].includes(t))S.favs[k].push(t);favSave();save();favRender();return}
   if(p){const t=p.dataset.fav;if(t===dataTicker()&&t===S.ticker)return;
     $("ticker").value=t;$("ticker").dispatchEvent(new Event("change",{bubbles:true}));favRender()}
 });
