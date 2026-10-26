@@ -224,7 +224,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 </section>
 
 
-<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 44 (built 2026-10-26)</p></div>
+<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 45 (built 2026-10-26)</p></div>
 <div class="stack" id="leapTab">
 <section class="panel pick" aria-label="LEAP and strikes">
   <fieldset>
@@ -2265,7 +2265,7 @@ function ccScanWire(){
   box.querySelectorAll("button[data-ccsort]").forEach(b=>b.onclick=()=>{const id=b.dataset.ccsort,c=S.cc.scanSort;
     S.cc.scanSort=c.col===id?{col:id,dir:-c.dir}:{col:id,dir:["sym","d","sp","exp","earn","k"].includes(id)?1:-1};save();renderCC()});
   box.querySelectorAll("tbody tr[data-ccsym]").forEach(tr=>tr.onclick=()=>{const t=tr.dataset.ccsym;if(t===S.ticker&&t===dataTicker())return;
-    $("ticker").value=t;$("ticker").dispatchEvent(new Event("change",{bubbles:true}));window.scrollTo({top:0,behavior:"smooth"})});
+    $("ticker").value=t;$("ticker").dispatchEvent(new Event("change",{bubbles:true}))});
 }
 
 
