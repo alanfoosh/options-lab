@@ -2131,9 +2131,10 @@ function ccScanHtml(){
   rows.sort((a,b)=>{const x=val(a),y=val(b);if(x==null&&y==null)return a.sym.localeCompare(b.sym);if(x==null)return 1;if(y==null)return -1;return (typeof x==="string"?x.localeCompare(y):x-y)*sort.dir});
   const head=`<tr>${CC_SCAN_COLS.map(c=>`<th scope="col"><button type="button" data-ccsort="${c.id}"${c.id===sort.col?` aria-sort="${sort.dir>0?"ascending":"descending"}"`:""}>${c.h}${c.id===sort.col?(sort.dir>0?" ▲":" ▼"):""}</button></th>`).join("")}</tr>`;
   const body=rows.map(o=>{
-    if(o.status==="ok"&&o.c)return `<tr data-ccsym="${esc(o.sym)}">${CC_SCAN_COLS.map(c=>`<td>${ccScanCell(c.id,o)}</td>`).join("")}</tr>`;
+    const op=o.sym===S.ticker?' class="open"':"";
+    if(o.status==="ok"&&o.c)return `<tr data-ccsym="${esc(o.sym)}"${op}>${CC_SCAN_COLS.map(c=>`<td>${ccScanCell(c.id,o)}</td>`).join("")}</tr>`;
     const msg=o.status==="none"?"Not scanned yet":o.status==="nochain"?`❌ No call chain near ${days} days`:o.status==="error"?esc(o.msg||"Couldn't load"):`No call under your ${tgt}% limit`;
-    return `<tr data-ccsym="${esc(o.sym)}"><td><b>${esc(o.sym)}</b></td><td>${o.spot?"$"+fn(o.spot):"–"}</td><td colspan="${CC_SCAN_COLS.length-2}" style="text-align:left;color:var(--muted);font-family:var(--font-ui)">${msg}</td></tr>`}).join("");
+    return `<tr data-ccsym="${esc(o.sym)}"${op}><td><b>${esc(o.sym)}</b></td><td>${o.spot?"$"+fn(o.spot):"–"}</td><td colspan="${CC_SCAN_COLS.length-2}" style="text-align:left;color:var(--muted);font-family:var(--font-ui)">${msg}</td></tr>`}).join("");
   return `<div class="panel" id="ccScanBox"><div style="font-weight:600;margin-bottom:2px">Scan my covered call list</div>
     <div class="capsub" style="margin:0 0 8px">For each symbol on your covered call list, the liquid call about ${days} days out that pays the most a year while staying under your ${tgt}% chance of being called away. Tap a column to sort, or a row to load that symbol. Uses one price call, one or more chain calls and one earnings call per symbol.</div>
     <div class="btnrow" style="margin-bottom:8px"><button type="button" class="primary" id="ccScanBtn"${ccScanning?" disabled":""}>${ccScanning?"Scanning…":"Scan "+list.length+" saved symbol"+(list.length>1?"s":"")}</button></div>
@@ -2145,6 +2146,7 @@ function ccScanWire(){
   box.querySelectorAll("button[data-ccsort]").forEach(b=>b.onclick=()=>{const id=b.dataset.ccsort,c=S.cc.scanSort;
     S.cc.scanSort=c.col===id?{col:id,dir:-c.dir}:{col:id,dir:["sym","d","sp","exp","earn","k"].includes(id)?1:-1};save();renderCC()});
   box.querySelectorAll("tbody tr[data-ccsym]").forEach(tr=>tr.onclick=()=>{const t=tr.dataset.ccsym;if(t===S.ticker&&t===dataTicker())return;
+    box.querySelectorAll("tbody tr").forEach(r=>r.classList.toggle("open",r===tr));
     $("ticker").value=t;$("ticker").dispatchEvent(new Event("change",{bubbles:true}))});
 }
 
