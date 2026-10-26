@@ -224,7 +224,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 </section>
 
 
-<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 42 (built 2026-10-25)</p></div>
+<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 43 (built 2026-10-26)</p></div>
 <div class="stack" id="leapTab">
 <section class="panel pick" aria-label="LEAP and strikes">
   <fieldset>
@@ -258,8 +258,9 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
         <label class="f">Exit 2<input type="number" id="x1" inputmode="decimal" step="1" min="1"></label>
         <label class="f">Exit 3<input type="number" id="x2" inputmode="decimal" step="1" min="1"></label>
       </div>
-      <p class="hint">The stock is assumed to sit at the exit price on the day you sell. Leave a box empty to hide that chart.</p>
+      <p class="hint">Defaults for a new ticker: Exit 1 is 90% of the 52-week high (or 15% above today if that is less than 10% above today). Exit 2 is the break-even at the midpoint date, the price where the first strike is worth what you paid halfway to expiry. Exit 3 is a downside check 15% below today. The stock is assumed to sit at the exit price on the day you sell. Leave a box empty to hide that chart.</p>
     </fieldset></section>
+<div id="leapPx"></div>
 <main class="main" id="main" aria-live="off"></main>
 </div>
 
@@ -307,6 +308,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
   <button type="button" id="cvHold" aria-pressed="false">vs just holding</button>
   <button type="button" id="cvExp" aria-pressed="false">Expiries</button>
 </div>
+<div id="ccPx"></div>
 <main class="main" id="ccMain" aria-live="off"></main>
 </div>
 
@@ -559,9 +561,18 @@ function fitDefaults(){
   Object.assign(S.strikes[0],{on:true,atm:true,strike:roundStrike(p)});
   Object.assign(S.strikes[1],{on:false,strike:roundStrike(p*0.85),mid:null,iv:null,src:""});
   Object.assign(S.strikes[2],{on:false,strike:roundStrike(p*1.15),mid:null,iv:null,src:""});
-  S.exits=[Math.round(p*1.15),Math.round(p*0.9),null];
   S.levels="";S.lvlOn=false;
   autofill(0);
+  S.exits=defaultExits();
+}
+function defaultExits(){ // 1: 90% of the 52-week high (or +15% if that is not at least 10% above today), 2: break-even at the midpoint date, 3: 15% down
+  const p=S.spot,h=S.high>0?S.high*0.9:0,up=Math.round(h>=p*1.10?h:p*1.15);
+  const r=S.strikes[0],T=totalDays()/2/365;let be=null;
+  if(r&&r.strike>0&&r.mid>0&&r.iv>0){
+    const f=x=>bs(x,r.strike,T,r.iv/100,S.rate/100)-r.mid;let lo=0.01,hi=Math.max(p,r.strike)*4;
+    if(f(hi)>0){for(let k=0;k<80;k++){const m=(lo+hi)/2;if(f(m)>0)hi=m;else lo=m}be=Math.round(hi)}
+  }
+  return [up,be,Math.round(p*0.85)];
 }
 let stamp=null;
 function save(){try{if(!S.ticker)return;localStorage.setItem(KEY,JSON.stringify(S));if(S.ticker)localStorage.setItem(KEY+"-ticker",S.ticker)}catch(e){}}
@@ -888,6 +899,7 @@ function render(){
   const list=S.view==="payoff"?payoffCharts(act):timeCharts(act);
   const leapMissing=missFor("leap",S.months)?`<div class="banner bad"><b>\u274C No LEAP chain found near ${esc($("months").selectedOptions[0]?.dataset.base||S.months+" months")} for ${esc(S.ticker)}.</b> Mid prices below are model estimates, not market quotes. Try another length.</div>`:"";
   main.innerHTML=staleBanner()+leapMissing+tiles(act)+list.map(o=>o.html).join("");
+  leapPriceRender();
   charts=list.map(o=>o.ctx);
   main.querySelectorAll("figure.chart").forEach((fig,k)=>{
     const svg=fig.querySelector("svg"),el=fig.querySelector(".readout"),ctx=charts[k],pay=fig.dataset.kind==="pay";
@@ -1082,7 +1094,9 @@ async function refresh(force){force=force===true;
     dates=Object.keys(ts).sort().reverse();
     const top=dates.slice(0,3),closes={};top.forEach(d=>closes[d]=parseFloat(ts[d]["4. close"]));
     closeOn=d=>closes[d];dates=top;
-    tcache[sym]=Object.assign({},snap||{},{at:Date.now(),dates:top,closes,high:newHigh,highNote,sr:S.sr&&S.sr[sym]||null,optDate:null});tcSave();
+    const hd=Object.keys(ts).sort().slice(-450),adj=d=>{const a=parseFloat(ts[d]["5. adjusted close"]);return a>0?a:parseFloat(ts[d]["4. close"])};
+    const hist={d:hd,c:hd.map(d=>Math.round(adj(d)*100)/100)};   // for the price chart; adjusted for splits when Alpha Vantage gives adjusted closes
+    tcache[sym]=Object.assign({},snap||{},{at:Date.now(),dates:top,closes,high:newHigh,highNote,sr:S.sr&&S.sr[sym]||null,optDate:null,hist});tcSave();
     }
     let found=null;
     outer: for(const d of (fresh&&snap.optDate?[snap.optDate]:dates.slice(0,2))){
@@ -1452,7 +1466,7 @@ function renderCC(){
       const body=priceSet(r.strike).map(x=>`<tr><td>$${fn(x,x<20?2:0)}${Math.abs(x-r.strike)<0.01?" (strike)":Math.abs(x-S.spot)<0.01?" (today)":""}</td>${days.map(d=>{const v=bs(x,r.strike,(t-d)/365,(r.iv+S.ivShift)/100,S.rate/100)*100*n,net=r.mid*100*n-v;return `<td>${fm(v)}<small class="${cls(net)}">${fs(net)}</small></td>`}).join("")}</tr>`).join("");
       return `<div class="panel"><div style="font-weight:600;margin-bottom:4px"><span class="sw" style="display:inline-block;background:${colK(i)};margin-right:6px"></span>$${r.strike} call</div><div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${body}</tbody></table></div></div>`}).join("")+`</div></div>`;
   }
-  main.innerHTML=html;$("ccScanSlot").innerHTML=ccScanHtml();
+  main.innerHTML=html;$("ccScanSlot").innerHTML=ccScanHtml();ccPriceRender();
   chartObj.wire&&chartObj.wire();
   ccScanWire();
   ccSuggestNote();
@@ -2058,42 +2072,71 @@ function putPickChart(o){
   return {html,wire};
 }
 
-function putPriceChart(o){ // stock price with Bollinger bands (20-day average +/- 2 standard deviations) and the 50-day average
-  const res=putRes[o.sym+"|"+S.put.days],h=res&&res.hist;
-  if(!h||h.c.length<70)return {html:`<div class="capsub" style="margin:10px 0 0">Loading the price chart for ${esc(o.sym)}… If it does not appear, scan ${esc(o.sym)} again.</div>`};
-  const c=h.c,n=c.length,show=60,i0=n-show;
+function priceChart(o){ // closing price with Bollinger bands (20-day average +/- 2 standard deviations), one moving average, and strike / break-even lines
+  // o: {sym,kind,h:{d,c},show,ma:{n,ema},lines:[{p,label,col,dash,right}]}
+  const h=o.h,c=h.c,n=c.length,ma=o.ma,need=Math.max(20,ma.ema?20:ma.n);
+  const show=Math.min(o.show,n-19);if(show<20)return null;
+  const i0=n-show,maName=(ma.ema?ma.n+"-day EMA":ma.n+"-day average");
   const sma=(i,k)=>{let a=0;for(let j=i-k+1;j<=i;j++)a+=c[j];return a/k};
-  const pts=[];for(let i=i0;i<n;i++){const m=sma(i,20);let v=0;for(let j=i-19;j<=i;j++)v+=(c[j]-m)*(c[j]-m);const sd=Math.sqrt(v/20);pts.push({d:h.d[i],c:c[i],m,lo:m-2*sd,hi:m+2*sd,m50:i>=49?sma(i,50):null})}
+  const mav=new Array(n).fill(null);
+  if(ma.ema){if(n>=ma.n){const al=2/(ma.n+1);let e=sma(ma.n-1,ma.n);mav[ma.n-1]=e;for(let i=ma.n;i<n;i++){e=c[i]*al+e*(1-al);mav[i]=e}}}
+  else for(let i=ma.n-1;i<n;i++)mav[i]=sma(i,ma.n);
+  const pts=[];for(let i=i0;i<n;i++){const m=sma(i,20);let v=0;for(let j=i-19;j<=i;j++)v+=(c[j]-m)*(c[j]-m);const sd=Math.sqrt(v/20);pts.push({d:h.d[i],c:c[i],m,lo:m-2*sd,hi:m+2*sd,ma:mav[i]})}
   const W=cw(),H=W<520?Math.round(W*0.8):340,mg={l:W<520?46:56,r:14,t:16,b:30},iw=W-mg.l-mg.r,ih=H-mg.t-mg.b;
-  const sk=o.c?o.c.k:null,be=o.c?o.c.be:null;
-  const all=[];pts.forEach(p=>{all.push(p.lo,p.hi,p.c);if(p.m50!=null)all.push(p.m50)});if(sk)all.push(sk);if(be)all.push(be);
+  const lines=(o.lines||[]).filter(l=>l.p>0);
+  const all=[];pts.forEach(p=>{all.push(p.lo,p.hi,p.c);if(p.ma!=null)all.push(p.ma)});lines.forEach(l=>all.push(l.p));
   let lo=Math.min(...all),hi=Math.max(...all);const pad=(hi-lo)*0.06;lo-=pad;hi+=pad;
   const sx=i=>mg.l+i/(pts.length-1)*iw,sy=v=>mg.t+(hi-v)/(hi-lo)*ih;
   let g="";
   niceTicks(lo,hi,5).forEach(v=>{if(v<lo||v>hi)return;g+=`<line x1="${mg.l}" x2="${W-mg.r}" y1="${sy(v)}" y2="${sy(v)}" stroke="var(--grid)"/><text x="${mg.l-6}" y="${sy(v)+4}" text-anchor="end">$${fn(v,v<20?2:0)}</text>`});
-  const tk=W<520?3:5;for(let t=0;t<tk;t++){const i=Math.round(t*(pts.length-1)/(tk-1));g+=`<text x="${sx(i)}" y="${H-8}" text-anchor="${t===0?"start":t===tk-1?"end":"middle"}">${esc(fdate(pts[i].d).replace(/, \d{4}$/,""))}</text>`}
+  const long=show>130,tk=W<520?3:5;for(let t=0;t<tk;t++){const i=Math.round(t*(pts.length-1)/(tk-1));g+=`<text x="${sx(i)}" y="${H-8}" text-anchor="${t===0?"start":t===tk-1?"end":"middle"}">${esc(long?fmon(pts[i].d):fdate(pts[i].d).replace(/, \d{4}$/,""))}</text>`}
   const line=k=>{let d="",pen=false;pts.forEach((p,i)=>{if(p[k]==null){pen=false;return}d+=(pen?"L":"M")+sx(i).toFixed(1)+" "+sy(p[k]).toFixed(1);pen=true});return d};
   const band=pts.map((p,i)=>(i?"L":"M")+sx(i).toFixed(1)+" "+sy(p.hi).toFixed(1)).join("")+pts.slice().reverse().map((p,j)=>"L"+sx(pts.length-1-j).toFixed(1)+" "+sy(p.lo).toFixed(1)).join("")+"Z";
   g+=`<path d="${band}" fill="var(--k0)" fill-opacity=".10" stroke="none"/><path d="${line("hi")}" fill="none" stroke="var(--k0)" stroke-width="1.2" stroke-opacity=".8"/><path d="${line("lo")}" fill="none" stroke="var(--k0)" stroke-width="1.2" stroke-opacity=".8"/><path d="${line("m")}" fill="none" stroke="var(--k0)" stroke-width="1.2" stroke-dasharray="3 3" stroke-opacity=".8"/>`;
-  g+=`<path d="${line("m50")}" fill="none" stroke="var(--k1)" stroke-width="1.8"/><path d="${line("c")}" fill="none" stroke="var(--ink)" stroke-width="1.8"/>`;
-  if(sk){const yk=sy(sk),yb=sy(be),close=Math.abs(yk-yb)<13;
-    g+=`<line x1="${mg.l}" x2="${W-mg.r}" y1="${yk}" y2="${yk}" stroke="var(--loss)" stroke-width="1.5" stroke-dasharray="6 3"/><text x="${mg.l+4}" y="${yk-4-(close&&yk<yb?9:0)}" style="fill:var(--loss);font-weight:600">Strike $${fn(sk,sk%1?1:0)}</text>`;
-    g+=`<line x1="${mg.l}" x2="${W-mg.r}" y1="${yb}" y2="${yb}" stroke="var(--gain)" stroke-width="1.5" stroke-dasharray="2 3"/><text x="${W-mg.r-4}" y="${yb+(close&&yk<yb?13:-4)}" text-anchor="end" style="fill:var(--gain);font-weight:600">Break-even $${fn(be)}</text>`}
+  g+=`<path d="${line("ma")}" fill="none" stroke="var(--k1)" stroke-width="1.8"/><path d="${line("c")}" fill="none" stroke="var(--ink)" stroke-width="1.8"/>`;
+  let lastY=null;lines.slice().sort((a,b)=>b.p-a.p).forEach(l=>{const y=sy(l.p);let ty=y-4;if(lastY!=null&&Math.abs(ty-lastY)<12)ty=lastY+12;lastY=ty;
+    g+=`<line x1="${mg.l}" x2="${W-mg.r}" y1="${y}" y2="${y}" stroke="${l.col}" stroke-width="1.5" stroke-dasharray="${l.dash}"/><text x="${l.right?W-mg.r-4:mg.l+4}" y="${ty}" text-anchor="${l.right?"end":"start"}" style="fill:${l.col};font-weight:600">${esc(l.label)} $${fn(l.p,l.p%1?2:0)}</text>`});
   const L=pts[pts.length-1],pos=(L.c-L.lo)/(L.hi-L.lo)*100;
   g+=`<circle cx="${sx(pts.length-1)}" cy="${sy(L.c)}" r="4" fill="var(--ink)"/><g class="hov" style="display:none"><line y1="${mg.t}" y2="${H-mg.b}" stroke="var(--ink)" stroke-opacity=".4"/><circle r="4.5" fill="none" stroke="var(--ink)" stroke-width="1.5"/></g>`;
-  const rd=p=>{const ps=(p.c-p.lo)/(p.hi-p.lo)*100;return [["Date",fdate(p.d)],["Close","$"+fn(p.c)],["Bollinger bands","$"+fn(p.lo)+" to $"+fn(p.hi)+" (average $"+fn(p.m)+")"],["Position in the bands",fn(ps,0)+"% (0% = lower band, 50% = average)"],["50-day average",p.m50!=null?"$"+fn(p.m50)+(p.c<p.m50?" (price below it)":" (price above it)"):"–"]].map(([a,b])=>`<tr><td style="white-space:normal">${a}</td><td style="text-align:right;white-space:normal">${b}</td></tr>`).join("")};
-  const html=`<figure class="chart" data-kind="putpx"><figcaption>${esc(o.sym)} price, last ${show} trading days · ${esc(fdate(L.d))} close $${fn(L.c)}</figcaption>
-    <div class="capsub">The price sits at ${fn(pos,0)}% of the Bollinger bands (0% is the lower band, 50% the 20-day average)${L.m50!=null?`, ${L.c<L.m50?"below":"above"} its 50-day average of $${fn(L.m50)}`:""}. Bands are the 20-day average plus or minus 2 standard deviations of daily closes. End-of-day data. Not advice.</div>
-    <div class="legend"><span style="color:var(--ink)"><i></i><span style="color:var(--muted)">Close</span></span><span style="color:var(--k0)"><i></i><span style="color:var(--muted)">Bollinger bands</span></span><span style="color:var(--k1)"><i></i><span style="color:var(--muted)">50-day average</span></span>${sk?`<span style="color:var(--loss)"><i style="border-top-style:dashed"></i><span style="color:var(--muted)">Strike</span></span><span style="color:var(--gain)"><i style="border-top-style:dotted"></i><span style="color:var(--muted)">Break-even</span></span>`:""}</div>
-    <svg class="c" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.sym)} closing price with Bollinger bands and the 50-day average">${g}</svg><div class="readout"><table><caption>${esc(fdate(L.d))}</caption><tbody>${rd(L)}</tbody></table></div></figure>`;
+  const rd=p=>{const ps=(p.c-p.lo)/(p.hi-p.lo)*100;return [["Date",fdate(p.d)],["Close","$"+fn(p.c)],["Bollinger bands","$"+fn(p.lo)+" to $"+fn(p.hi)+" (average $"+fn(p.m)+")"],["Position in the bands",fn(ps,0)+"% (0% = lower band, 50% = average)"],[maName,p.ma!=null?"$"+fn(p.ma)+(p.c<p.ma?" (price below it)":" (price above it)"):"–"]].map(([a,b])=>`<tr><td style="white-space:normal">${a}</td><td style="text-align:right;white-space:normal">${b}</td></tr>`).join("")};
+  const span=show>=240?"12 months":show>130?Math.round(show/21)+" months":"last "+show+" trading days";
+  const html=`<figure class="chart" data-kind="${o.kind}"><figcaption>${esc(o.sym)} price, ${span} · ${esc(fdate(L.d))} close $${fn(L.c)}</figcaption>
+    <div class="capsub">The price sits at ${fn(pos,0)}% of the Bollinger bands (0% is the lower band, 50% the 20-day average)${L.ma!=null?`, ${L.c<L.ma?"below":"above"} its ${maName} of $${fn(L.ma)}`:""}. Bands are the 20-day average plus or minus 2 standard deviations of daily closes. End-of-day data. Not advice.</div>
+    <div class="legend"><span style="color:var(--ink)"><i></i><span style="color:var(--muted)">Close</span></span><span style="color:var(--k0)"><i></i><span style="color:var(--muted)">Bollinger bands</span></span><span style="color:var(--k1)"><i></i><span style="color:var(--muted)">${maName}</span></span>${lines.map(l=>`<span style="color:${l.col}"><i style="border-top-style:${l.dash==="2 3"?"dotted":"dashed"}"></i><span style="color:var(--muted)">${esc(l.label)}</span></span>`).join("")}</div>
+    <svg class="c" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.sym)} closing price with Bollinger bands and the ${maName}">${g}</svg><div class="readout"><table><caption>${esc(fdate(L.d))}</caption><tbody>${rd(L)}</tbody></table></div></figure>`;
   const wire=()=>{
-    const fig=document.querySelector('figure[data-kind="putpx"]');if(!fig)return;
+    const fig=document.querySelector(`figure[data-kind="${o.kind}"]`);if(!fig)return;
     const svg=fig.querySelector("svg"),el=fig.querySelector(".readout"),hov=svg.querySelector(".hov"),ln=hov.querySelector("line"),ci=hov.querySelector("circle");
     svg.addEventListener("pointermove",ev=>{const r=svg.getBoundingClientRect(),px=(ev.clientX-r.left)/r.width*W;const i=Math.max(0,Math.min(pts.length-1,Math.round((px-mg.l)/iw*(pts.length-1))));const p=pts[i];
       ln.setAttribute("x1",sx(i));ln.setAttribute("x2",sx(i));ci.setAttribute("cx",sx(i));ci.setAttribute("cy",sy(p.c));hov.style.display="";
       el.innerHTML=`<table><caption>${esc(fdate(p.d))}</caption><tbody>${rd(p)}</tbody></table>`});
   };
   return {html,wire};
+}
+const PX_STRIKE="var(--loss)",PX_BE="var(--gain)";
+function putPriceChart(o){ // Sell puts: 60 days, 50-day average
+  const res=putRes[o.sym+"|"+S.put.days],h=res&&res.hist;
+  if(!h||h.c.length<70)return {html:`<div class="capsub" style="margin:10px 0 0">Loading the price chart for ${esc(o.sym)}… If it does not appear, scan ${esc(o.sym)} again.</div>`};
+  return priceChart({sym:o.sym,kind:"px-put",h,show:60,ma:{n:50},lines:o.c?[{p:o.c.k,label:"Strike",col:PX_STRIKE,dash:"6 3"},{p:o.c.be,label:"Break-even",col:PX_BE,dash:"2 3",right:1}]:[]})||{html:""};
+}
+function histNote(where){return `<div class="capsub" style="margin:0 0 10px">Press Refresh to load the price history for the ${where} chart (Bollinger bands and moving average). It is saved after that.</div>`}
+function leapPriceRender(){ // LEAP: 12 months, 200-day EMA
+  const el=$("leapPx");if(!el)return;
+  const sym=S.loaded&&S.loaded.ticker,tc=sym&&tcache[sym];
+  if(!sym||sym!==S.ticker){el.innerHTML="";return}
+  if(!tc||!tc.hist||tc.hist.c.length<60){el.innerHTML=histNote("LEAP");return}
+  const r=activeStrikes()[0],lines=r?[{p:r.r.strike,label:"Strike",col:PX_STRIKE,dash:"6 3"},{p:r.r.strike+r.r.mid,label:"Break-even at expiry",col:PX_BE,dash:"2 3",right:1}]:[];
+  const ch=priceChart({sym,kind:"px-leap",h:tc.hist,show:250,ma:{n:200,ema:true},lines});
+  el.innerHTML=ch?ch.html:"";ch&&ch.wire();
+}
+function ccPriceRender(){ // Covered calls: 60 days, 50-day average
+  const el=$("ccPx");if(!el)return;
+  const sym=S.loaded&&S.loaded.ticker,tc=sym&&tcache[sym];
+  if(!sym||sym!==S.ticker){el.innerHTML="";return}
+  if(!tc||!tc.hist||tc.hist.c.length<70){el.innerHTML=histNote("covered call");return}
+  const r=S.cc.strikes[0],lines=r&&r.strike>0?[{p:r.strike,label:"Strike",col:PX_STRIKE,dash:"6 3"}].concat(r.mid>0&&!S.cc.pmcc?[{p:+((S.cc.mode==="basis"?basisOf():S.spot)-r.mid).toFixed(2),label:"Break-even",col:PX_BE,dash:"2 3",right:1}]:[]):[];
+  const ch=priceChart({sym,kind:"px-cc",h:tc.hist,show:60,ma:{n:50},lines});
+  el.innerHTML=ch?ch.html:"";ch&&ch.wire();
 }
 function putAdd(){
   const raw=symList($("putAdd").value);
