@@ -2014,7 +2014,7 @@ function ccPriceRender(){ // Covered calls: 60 days, 50-day average
   const sym=S.loaded&&S.loaded.ticker,tc=sym&&tcache[sym];
   if(!sym||sym!==S.ticker){el.innerHTML="";return}
   if(!tc||!tc.hist||tc.hist.c.length<70){el.innerHTML=histNote("covered call");return}
-  const r=S.cc.strikes[0],lines=r&&r.strike>0?[{p:r.strike,label:"Strike",col:PX_STRIKE,dash:"6 3"}].concat(r.mid>0&&!S.cc.pmcc?[{p:+((S.cc.mode==="basis"?basisOf():S.spot)-r.mid).toFixed(2),label:"Break-even",col:PX_BE,dash:"2 3",right:1}]:[]):[];
+  const r=S.cc.strikes[0],lines=r&&r.strike>0?[{p:r.strike,label:"Strike",col:PX_STRIKE,dash:"6 3"}].concat(r.mid>0&&S.cc.mode==="basis"&&basisOf()>0?[{p:+(basisOf()-r.mid).toFixed(2),label:"Break-even (cost basis less premium)",col:PX_BE,dash:"2 3",right:1}]:[]):[];
   const ch=priceChart({sym,kind:"px-cc",h:tc.hist,show:60,ma:{n:50},lines});
   el.innerHTML=ch?ch.html:"";ch&&ch.wire();
 }

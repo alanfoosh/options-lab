@@ -224,7 +224,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 </section>
 
 
-<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 43 (built 2026-10-26)</p></div>
+<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 44 (built 2026-10-26)</p></div>
 <div class="stack" id="leapTab">
 <section class="panel pick" aria-label="LEAP and strikes">
   <fieldset>
@@ -2134,7 +2134,7 @@ function ccPriceRender(){ // Covered calls: 60 days, 50-day average
   const sym=S.loaded&&S.loaded.ticker,tc=sym&&tcache[sym];
   if(!sym||sym!==S.ticker){el.innerHTML="";return}
   if(!tc||!tc.hist||tc.hist.c.length<70){el.innerHTML=histNote("covered call");return}
-  const r=S.cc.strikes[0],lines=r&&r.strike>0?[{p:r.strike,label:"Strike",col:PX_STRIKE,dash:"6 3"}].concat(r.mid>0&&!S.cc.pmcc?[{p:+((S.cc.mode==="basis"?basisOf():S.spot)-r.mid).toFixed(2),label:"Break-even",col:PX_BE,dash:"2 3",right:1}]:[]):[];
+  const r=S.cc.strikes[0],lines=r&&r.strike>0?[{p:r.strike,label:"Strike",col:PX_STRIKE,dash:"6 3"}].concat(r.mid>0&&S.cc.mode==="basis"&&basisOf()>0?[{p:+(basisOf()-r.mid).toFixed(2),label:"Break-even (cost basis less premium)",col:PX_BE,dash:"2 3",right:1}]:[]):[];
   const ch=priceChart({sym,kind:"px-cc",h:tc.hist,show:60,ma:{n:50},lines});
   el.innerHTML=ch?ch.html:"";ch&&ch.wire();
 }
