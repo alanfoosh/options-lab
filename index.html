@@ -235,7 +235,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 </section>
 
 
-<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 47 (built 2026-10-28)</p></div>
+<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 48 (built 2026-10-28)</p></div>
 <div class="stack" id="leapTab">
 <section class="panel pick" aria-label="LEAP and strikes">
   <fieldset>
@@ -257,20 +257,18 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
   </fieldset>
 </section>
 
+<section class="panel" id="leapSl" aria-label="Strike and exit price">
+  <div class="xrow"><label class="xl" for="ks0">Strike</label><div class="trk"><input type="range" id="ks0" min="0" step="1" aria-label="Strike 1 slider"><div class="ticks" id="kt0" aria-hidden="true"></div></div><input type="number" id="kN" inputmode="decimal" step="any" aria-label="Strike 1 in dollars"></div>
+  <div class="xrow"><label class="xl" for="xs0">Exit</label><div class="trk" id="xw0"><input type="range" id="xs0" step="1" aria-label="Exit price slider"><div class="ticks" id="xt0" aria-hidden="true"></div></div><input type="number" id="x0" inputmode="decimal" step="1" min="1" aria-label="Exit price in dollars"></div>
+  <div class="tkey" id="xKey"></div>
+  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:8px"><button type="button" id="xReset">Reset to defaults</button><span class="hint" style="margin:0">Strike starts at the money. Exit starts at the price where that strike breaks even (0% return) at the midpoint date, and follows the strike until you move it. Charts update as you drag.</span></div>
+</section>
 <div class="seg" role="group" aria-label="Chart view">
   <button type="button" id="vPayoff" aria-pressed="true">Profit/loss by price</button>
   <button type="button" id="vTime" aria-pressed="false">Return over time</button>
 </div>
 
-<section class="panel" id="timeInputs" aria-label="Exit prices"><fieldset>
-      <legend>Exit prices: where the stock is when you sell</legend>
-      <div class="xrow"><label class="xl" for="xs0">Exit 1</label><div class="trk" id="xw0"><input type="range" id="xs0" step="1" aria-label="Exit 1 price slider"><div class="ticks" id="xt0" aria-hidden="true"></div></div><input type="number" id="x0" inputmode="decimal" step="1" min="1" aria-label="Exit 1 price in dollars"></div>
-      <div class="xrow"><label class="xl" for="xs1">Exit 2</label><div class="trk" id="xw1"><input type="range" id="xs1" step="1" aria-label="Exit 2 price slider"><div class="ticks" id="xt1" aria-hidden="true"></div></div><input type="number" id="x1" inputmode="decimal" step="1" min="1" aria-label="Exit 2 price in dollars"></div>
-      <div class="xrow"><label class="xl" for="xs2">Exit 3</label><div class="trk" id="xw2"><input type="range" id="xs2" step="1" aria-label="Exit 3 price slider"><div class="ticks" id="xt2" aria-hidden="true"></div></div><input type="number" id="x2" inputmode="decimal" step="1" min="1" aria-label="Exit 3 price in dollars"></div>
-      <div class="tkey" id="xKey"></div>
-      <div class="btnrow" style="margin-top:8px"><button type="button" id="xReset">Reset to defaults</button></div>
-      <p class="hint">Defaults: Exit 1 is 90% of the 52-week high (or +15% if that is less than 10% above today). Exit 2 is the break-even at the midpoint date, where strike 1 is worth what you paid. Exit 3 is 15% below today. Sliders run from 50% below today to 10% above the 52-week high, and the charts update as you drag. The stock is assumed to sit at the exit price on the day you sell. An empty box hides that chart.</p>
-    </fieldset></section>
+<div id="timeInputs" hidden><input type="number" id="x1"><input type="number" id="x2"></div>
 <div id="leapPx"></div>
 <main class="main" id="main" aria-live="off"></main>
 </div>
@@ -575,7 +573,7 @@ function fitDefaults(){
   Object.assign(S.strikes[2],{on:false,strike:roundStrike(p*1.15),mid:null,iv:null,src:""});
   S.levels="";S.lvlOn=false;
   autofill(0);
-  S.exits=defaultExits();
+  S.exitManual=false;S.exits=defaultExits();
 }
 function defaultExits(){ // 1: 90% of the 52-week high (or +15% if that is not at least 10% above today), 2: break-even at the midpoint date, 3: 15% down
   const p=S.spot,h=S.high>0?S.high*0.9:0,up=Math.round(h>=p*1.10?h:p*1.15);
@@ -584,7 +582,7 @@ function defaultExits(){ // 1: 90% of the 52-week high (or +15% if that is not a
     const f=x=>bs(x,r.strike,T,r.iv/100,S.rate/100)-r.mid;let lo=0.01,hi=Math.max(p,r.strike)*4;
     if(f(hi)>0){for(let k=0;k<80;k++){const m=(lo+hi)/2;if(f(m)>0)hi=m;else lo=m}be=Math.round(hi)}
   }
-  return [up,be,Math.round(p*0.85)];
+  return [be||up,null,null];
 }
 function beMid(){ // stock price where strike 1 is worth what was paid, halfway to expiry
   const r=S.strikes[0],T=totalDays()/2/365;if(!(r&&r.strike>0&&r.mid>0&&r.iv>0))return null;
@@ -594,13 +592,28 @@ function beMid(){ // stock price where strike 1 is worth what was paid, halfway 
 const TK={today:["var(--ink)","Today"],strike:["var(--loss)","Strike"],be:["var(--gain)","Break-even"],high:["var(--k1)","52-week high"],basis:["var(--k2)","Cost basis"]};
 function tickHtml(lo,hi,marks){return marks.filter(m=>m.p>=lo&&m.p<=hi).map(m=>`<i style="left:${((m.p-lo)/(hi-lo)*100).toFixed(2)}%;background:${TK[m.k][0]}" title="${TK[m.k][1]} $${fn(m.p)}"></i>`).join("")}
 function tickKey(marks){const seen={};return marks.filter(m=>m.p>0&&!seen[m.k]&&(seen[m.k]=1)).map(m=>`<span style="--c:${TK[m.k][0]}">${TK[m.k][1]} $${fn(m.p,m.p<20?2:0)}</span>`).join("")}
+function strikeList(){
+  const p=S.spot;let ks=[...new Set(chain.map(c=>c.k))].filter(k=>k>=p*0.5&&k<=p*1.6).sort((a,b)=>a-b);
+  if(ks.length<5){ks=[];const st=p<25?0.5:p<100?1:p<250?2.5:5;for(let k=Math.ceil(p*0.5/st)*st;k<=p*1.6+1e-9;k+=st)ks.push(+k.toFixed(2))}
+  return ks;
+}
+function setStrike(k){
+  const r=S.strikes[0];r.on=true;r.strike=k;r.atm=false;autofill(0);
+  $("on0").checked=true;$("k0").value=k;$("m0").value=r.mid??"";$("v0").value=r.iv??"";$("atm0").checked=false;
+  if(!S.exitManual){const b=beMid();if(b){S.exits=[Math.round(b),null,null];$("x0").value=S.exits[0]}}
+  derived();schedule();
+}
 function exitSliders(){
   if(!(S.spot>0)||!$("xs0"))return;
+  if(S.exitManual===undefined){S.exitManual=false;try{S.exits=defaultExits()}catch(e){}$("x0").value=S.exits[0]??""}
+  if(S.exits[1]!=null||S.exits[2]!=null)S.exits=[S.exits[0],null,null];
   const p=S.spot,lo=Math.max(1,Math.floor(p*0.5)),top=S.high>0?S.high*1.1:p*1.5,hi=Math.ceil(Math.max(top,p*1.1));
   const r=S.strikes[0],b=beMid(),marks=[{k:"today",p},r&&r.strike>0?{k:"strike",p:r.strike}:null,b?{k:"be",p:b}:null,S.high>0?{k:"high",p:S.high}:null].filter(Boolean);
-  const th=tickHtml(lo,hi,marks);
-  [0,1,2].forEach(i=>{const el=$("xs"+i),x=S.exits[i];el.min=lo;el.max=hi;const v=String(Math.round(x>0?x:p));if(el.value!==v)el.value=v;
-    $("xw"+i).classList.toggle("off",!(x>0));$("xt"+i).innerHTML=th});
+  const el=$("xs0"),x=S.exits[0];el.min=lo;el.max=hi;const v=String(Math.round(x>0?x:p));if(el.value!==v)el.value=v;
+  $("xw0").classList.toggle("off",!(x>0));$("xt0").innerHTML=tickHtml(lo,hi,marks);
+  const ks=strikeList(),ke=$("ks0");ke.max=Math.max(0,ks.length-1);
+  if(r&&r.strike>0){let bi=0;ks.forEach((k,i)=>{if(Math.abs(k-r.strike)<Math.abs(ks[bi]-r.strike))bi=i});if(ke.value!==String(bi))ke.value=bi;if(document.activeElement!==$("kN"))$("kN").value=r.strike}
+  $("kt0").innerHTML=ks.length>1?tickHtml(ks[0],ks[ks.length-1],[{k:"today",p}]):"";
   $("xKey").innerHTML=tickKey(marks).replace("Break-even","Break-even at midpoint");
 }
 function ivReadout(){
@@ -621,10 +634,10 @@ const ccX={},putX={};
 function ccSliderHtml(r,be){
   const p=S.spot,lo=Math.floor(p*0.7),hi=Math.ceil(Math.max(r.strike*1.15,p*1.3)),v=Math.round(Math.min(hi,Math.max(lo,ccX[S.ticker]||p)));
   const marks=[{k:"today",p},{k:"strike",p:r.strike},be?{k:"be",p:be}:null,S.cc.mode==="basis"&&!S.cc.pmcc&&basisOf()>0?{k:"basis",p:basisOf()}:null].filter(Boolean);
-  return `<div class="panel pxsl"><div style="font-weight:600;margin-bottom:6px">Stock price at expiry (${esc(fdate(S.cc.expiry))})</div>${sliderHtml("ccXs","Price",lo,hi,v,marks)}<div class="out" id="ccXout"></div></div>`;
+  return `<div class="panel pxsl"><div style="font-weight:600;margin-bottom:6px">Stock price at expiry (${esc(fdate(S.cc.expiry))})</div>${sliderHtml("ccXs","Price",lo,hi,v,marks)}<div class="out" id="ccXout"></div>${(S.cc.view||"pick")==="hold"?`<p class="hint" style="margin:4px 0 0">The chart below follows this price.</p>`:`<p class="hint" style="margin:4px 0 0">Open the "vs just holding" chart to see this price on the chart.</p>`}</div>`;
 }
 function ccSliderWire(r){
-  wireSlider("ccXs",(x,init)=>{if(!init)ccX[S.ticker]=x;const pl=ccPL(r,x),cap=ccCapital(r),t=ccDaysT(),n=ccN(),called=x>=r.strike;
+  wireSlider("ccXs",(x,init)=>{if(!init)ccX[S.ticker]=x;const f=$("ccFig");if(f&&f._read&&!init)f._read(x);const pl=ccPL(r,x),cap=ccCapital(r),t=ccDaysT(),n=ccN(),called=x>=r.strike;
     const what=S.cc.mode==="option"?(called?`The call ends in the money by $${fn(x-r.strike)} a share.`:`The call expires worthless and you keep the premium.`)
       :S.cc.pmcc?(called?`The short call ends in the money; close it or roll it. Your LEAP is still open.`:`The short call expires worthless; your LEAP is still open.`)
       :(called?`<b>Called away:</b> your ${n*100} shares are sold at $${fn(r.strike)}.`:`<b>You keep the shares</b> and the premium.`);
@@ -691,7 +704,7 @@ function derived(){
   $("leapTab").hidden=!lp;$("ccTab").hidden=!cc;$("putTab").hidden=!pt;$("setTab").hidden=!st;$("tabSet").setAttribute("aria-selected",st);$("stockGrid").closest("section").hidden=st;
   $("tabLeap").setAttribute("aria-selected",lp);$("tabCC").setAttribute("aria-selected",cc);$("tabPut").setAttribute("aria-selected",pt);
   $("stockGrid").hidden=pt;$("favRow").hidden=pt;favRender();$("stockHint").hidden=pt;$("srPanel").hidden=pt||st;document.querySelector('[aria-label="More settings"]').hidden=st;
-  $("timeInputs").hidden=!lp||S.view!=="time";$("payInputs").hidden=!lp||S.view!=="payoff";$("highInputs").hidden=!lp;
+  $("payInputs").hidden=!lp||S.view!=="payoff";$("highInputs").hidden=!lp;
   putDerived();
   ccDerived();
   $("vPayoff").setAttribute("aria-pressed",S.view==="payoff");$("vTime").setAttribute("aria-pressed",S.view==="time");
@@ -734,7 +747,11 @@ function onInput(e){
   if(/^cc/.test(id)){onCC(e);return}
   if(/^put/.test(id))return;   // the put tab has its own handlers
   if(id==="srOn"){S.srOn=$("srOn").checked;save();schedule();return}
-  if(/^xs\d$/.test(id)){const i=+id[2],v=+e.target.value;$("x"+i).value=v;S.exits[i]=v;$("xw"+i).classList.remove("off");if(e.type==="change")save();schedule();return}
+  if(/^ccXs/.test(id))return;   // covered call price slider updates itself (redrawing here made it lag)
+  if(id==="xs0"){const v=+e.target.value;$("x0").value=v;S.exits=[v,null,null];S.exitManual=true;$("xw0").classList.remove("off");ivReadout();if(e.type==="change")save();schedule();return}
+  if(id==="ks0"){const ks=strikeList(),k=ks[+e.target.value];if(k){$("kN").value=k;setStrike(k)}if(e.type==="change")save();return}
+  if(id==="kN"){const k=num(e.target.value);if(k>0)setStrike(k);if(e.type==="change")save();return}
+  if(id==="x0")S.exitManual=true;
   if(id==="ivShift"){S.ivShift=+e.target.value||0;ivReadout();if(e.type==="change"){derived();save()}schedule();return}
   if(id==="ticker"&&e.type==="change"&&S.loaded&&$("ticker").value.trim().toUpperCase()!==S.loaded.ticker)chain=[];
   if(id==="ticker"&&e.type==="change"){const t=($("ticker").value||"").trim().toUpperCase();if(!S.loaded||t!==S.loaded.ticker)ccChain=[];S.ticker=t;ccSync()}
@@ -832,7 +849,7 @@ function payoffCharts(act){
     // level markers
     levels.forEach(v=>{g+=`<line x1="${sx(v)}" x2="${sx(v)}" y1="${m.t}" y2="${H-m.b}" stroke="var(--lvl)" stroke-dasharray="1 5"/><text x="${sx(v)+3}" y="${H-m.b-6}" style="fill:var(--lvl)">$${v}</text>`});
     // top markers
-    const marks=[{x:spot,t:"Today $"+fn(spot,0)},{x:K,t:"Strike $"+K}];
+    const marks=[{x:spot,t:"Today $"+fn(spot,0)},{x:K,t:"Strike $"+K}];if(S.exits[0]>0)marks.push({x:S.exits[0],t:"Exit $"+fn(S.exits[0],0)});
     if(S.high)marks.push({x:S.high,t:"52-wk high $"+fn(S.high,0)});
     marks.sort((a,b)=>a.x-b.x);let lastPx=-1e9,row=0;
     marks.forEach(mk=>{if(mk.x<xmin||mk.x>xmax)return;const px=sx(mk.x);row=(px-lastPx<92)?(row+1)%3:0;lastPx=px;
@@ -1701,7 +1718,7 @@ function ccHoldChart(r){
       hov.style.display="";const ln=hov.querySelector("line");ln.setAttribute("x1",sx(x));ln.setAttribute("x2",sx(x));
       const cs=hov.querySelectorAll("circle");cs[0].setAttribute("cx",sx(x));cs[0].setAttribute("cy",sy(a));cs[1].setAttribute("cx",sx(x));cs[1].setAttribute("cy",sy(b))};
     const at=ev=>{const rect=svg.getBoundingClientRect(),px=(ev.clientX-rect.left)/rect.width*W;read(xmin+Math.max(0,Math.min(1,(px-m.l)/iw))*(xmax-xmin))};
-    svg.addEventListener("pointermove",at);svg.addEventListener("pointerdown",at);read(S.spot);
+    svg.addEventListener("pointermove",at);svg.addEventListener("pointerdown",at);fig._read=read;read(ccX[S.ticker]||S.spot);
   };
   return {html,wire};
 }
@@ -1810,7 +1827,8 @@ document.querySelectorAll(".ccDeltaBtn").forEach(b=>b.onclick=()=>{
   if(b.dataset.delta)ccSetByDelta([+b.dataset.delta]);else ccSetByPct([+b.dataset.pct],false);
   ccRemember();ccSync();save();schedule()});
 [["cvPick","pick"],["cvHold","hold"],["cvExp","exp"]].forEach(([id,v])=>$(id).onclick=()=>{S.cc.view=v;ccDerived();save();render()});
-$("xReset").addEventListener("click",()=>{S.exits=defaultExits();syncInputs();derived();save();schedule()});
+$("xReset").addEventListener("click",()=>{const ks=strikeList();let k=ks[0];ks.forEach(v=>{if(Math.abs(v-S.spot)<Math.abs(k-S.spot))k=v});
+  S.exitManual=false;if(k)setStrike(k);S.strikes[0].atm=true;$("atm0").checked=true;S.exits=defaultExits();syncInputs();save();schedule()});
 document.querySelector(".stack").addEventListener("input",onInput);
 document.querySelector(".stack").addEventListener("change",onInput);
 $("vPayoff").onclick=()=>{S.view="payoff";derived();save();render()};
