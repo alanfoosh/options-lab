@@ -71,6 +71,9 @@ button:disabled{opacity:.55;cursor:default}
 .tile h3{margin:0 0 6px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
 .sw{width:12px;height:12px;border-radius:3px;flex:none}
 .tile dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:12.5px}
+#leapTiles .tiles{grid-template-columns:1fr}
+@media (min-width:640px){#leapTiles .tile dl{grid-template-columns:auto 1fr auto 1fr auto 1fr;column-gap:18px}}
+@media (min-width:420px) and (max-width:639px){#leapTiles .tile dl{grid-template-columns:auto 1fr auto 1fr;column-gap:16px}}
 .tile dt{color:var(--muted)} .tile dd{margin:0;text-align:right;font-family:var(--font-num);font-variant-numeric:tabular-nums}
 figure.chart{position:relative;margin:0;max-width:900px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px 14px;min-width:0}
 figcaption{font-weight:600;font-size:14px;margin-bottom:2px;text-wrap:balance}
@@ -235,7 +238,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 </section>
 
 
-<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 50 (built 2026-10-28)</p></div>
+<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 51 (built 2026-10-28)</p></div>
 <div class="stack" id="leapTab">
 <section class="panel pick" aria-label="LEAP and strikes">
   <fieldset>
@@ -263,6 +266,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 </div>
 
 <div id="timeInputs" hidden><input type="number" id="x1"><input type="number" id="x2"></div>
+<div id="leapTiles"></div>
 <section class="panel" id="leapSlK" aria-label="Strike">
   <div class="xrow"><label class="xl" for="ks0">Strike</label><div class="trk"><input type="range" id="ks0" min="0" step="1" aria-label="Strike 1 slider"><div class="ticks" id="kt0" aria-hidden="true"></div></div><input type="number" id="kN" inputmode="decimal" step="any" aria-label="Strike 1 in dollars"></div>
   <div class="tkey" id="kKey"></div>
@@ -274,7 +278,6 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
   <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:8px"><button type="button" id="xReset">Reset to defaults</button><span class="hint" style="margin:0">Strike starts at the money. Exit starts at the price where that strike breaks even (0% return) at the midpoint date, and follows the strike until you move it.</span></div>
 </section>
 <main class="main" id="main" aria-live="off"></main>
-<div id="leapTiles"></div>
 </div>
 
 <div class="stack" id="ccTab" hidden>
