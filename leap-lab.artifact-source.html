@@ -227,27 +227,31 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
     </div>
     <p class="hint" id="expNote"></p>
   </fieldset>
-  <fieldset>
-    <legend>Strikes (up to three)</legend>
+  <fieldset hidden>
+    <legend>Strikes</legend>
     <div id="strikes"></div>
     <p class="hint">Mid price and implied volatility fill in from the chain when the strike is listed. Otherwise the page estimates them from the model. Edit either one by hand at any time.</p>
   </fieldset>
 </section>
 
-<section class="panel" id="leapSl" aria-label="Strike and exit price">
-  <div class="xrow"><label class="xl" for="ks0">Strike</label><div class="trk"><input type="range" id="ks0" min="0" step="1" aria-label="Strike 1 slider"><div class="ticks" id="kt0" aria-hidden="true"></div></div><input type="number" id="kN" inputmode="decimal" step="any" aria-label="Strike 1 in dollars"></div>
-  <div class="xrow"><label class="xl" for="xs0">Exit</label><div class="trk" id="xw0"><input type="range" id="xs0" step="1" aria-label="Exit price slider"><div class="ticks" id="xt0" aria-hidden="true"></div></div><input type="number" id="x0" inputmode="decimal" step="1" min="1" aria-label="Exit price in dollars"></div>
-  <div class="tkey" id="xKey"></div>
-  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:8px"><button type="button" id="xReset">Reset to defaults</button><span class="hint" style="margin:0">Strike starts at the money. Exit starts at the price where that strike breaks even (0% return) at the midpoint date, and follows the strike until you move it. Charts update as you drag.</span></div>
-</section>
 <div class="seg" role="group" aria-label="Chart view">
   <button type="button" id="vPayoff" aria-pressed="true">Profit/loss by price</button>
   <button type="button" id="vTime" aria-pressed="false">Return over time</button>
 </div>
 
 <div id="timeInputs" hidden><input type="number" id="x1"><input type="number" id="x2"></div>
+<section class="panel" id="leapSlK" aria-label="Strike">
+  <div class="xrow"><label class="xl" for="ks0">Strike</label><div class="trk"><input type="range" id="ks0" min="0" step="1" aria-label="Strike 1 slider"><div class="ticks" id="kt0" aria-hidden="true"></div></div><input type="number" id="kN" inputmode="decimal" step="any" aria-label="Strike 1 in dollars"></div>
+  <div class="tkey" id="kKey"></div>
+</section>
 <div id="leapPx"></div>
+<section class="panel" id="leapSlX" aria-label="Exit price">
+  <div class="xrow"><label class="xl" for="xs0">Exit</label><div class="trk" id="xw0"><input type="range" id="xs0" step="1" aria-label="Exit price slider"><div class="ticks" id="xt0" aria-hidden="true"></div></div><input type="number" id="x0" inputmode="decimal" step="1" min="1" aria-label="Exit price in dollars"></div>
+  <div class="tkey" id="xKey"></div>
+  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:8px"><button type="button" id="xReset">Reset to defaults</button><span class="hint" style="margin:0">Strike starts at the money. Exit starts at the price where that strike breaks even (0% return) at the midpoint date, and follows the strike until you move it.</span></div>
+</section>
 <main class="main" id="main" aria-live="off"></main>
+<div id="leapTiles"></div>
 </div>
 
 <div class="stack" id="ccTab" hidden>
@@ -489,6 +493,7 @@ function exitSliders(){
   if(!(S.spot>0)||!$("xs0"))return;
   if(S.exitManual===undefined){S.exitManual=false;try{S.exits=defaultExits()}catch(e){}$("x0").value=S.exits[0]??""}
   if(S.exits[1]!=null||S.exits[2]!=null)S.exits=[S.exits[0],null,null];
+  [1,2].forEach(i=>{if(S.strikes[i].on){S.strikes[i].on=false;$("on"+i).checked=false}});
   const p=S.spot,lo=Math.max(1,Math.floor(p*0.5)),top=S.high>0?S.high*1.1:p*1.5,hi=Math.ceil(Math.max(top,p*1.1));
   const r=S.strikes[0],b=beMid(),marks=[{k:"today",p},r&&r.strike>0?{k:"strike",p:r.strike}:null,b?{k:"be",p:b}:null,S.high>0?{k:"high",p:S.high}:null].filter(Boolean);
   const el=$("xs0"),x=S.exits[0];el.min=lo;el.max=hi;const v=String(Math.round(x>0?x:p));if(el.value!==v)el.value=v;
@@ -496,6 +501,7 @@ function exitSliders(){
   const ks=strikeList(),ke=$("ks0");ke.max=Math.max(0,ks.length-1);
   if(r&&r.strike>0){let bi=0;ks.forEach((k,i)=>{if(Math.abs(k-r.strike)<Math.abs(ks[bi]-r.strike))bi=i});if(ke.value!==String(bi))ke.value=bi;if(document.activeElement!==$("kN"))$("kN").value=r.strike}
   $("kt0").innerHTML=ks.length>1?tickHtml(ks[0],ks[ks.length-1],[{k:"today",p}]):"";
+  $("kKey").innerHTML=tickKey([{k:"today",p}])+(ks.length?`<span style="--c:transparent">Listed strikes $${fn(ks[0],0)} to $${fn(ks[ks.length-1],0)}</span>`:"");
   $("xKey").innerHTML=tickKey(marks).replace("Break-even","Break-even at midpoint");
 }
 function ivReadout(){
@@ -837,7 +843,8 @@ function tiles(act){
       <dt>Time value in the price</dt><dd>${fm(tv*100*n)} (${fn(tv/r.mid*100,0)}%)</dd>
       <dt>Implied volatility</dt><dd>${fn(ivx(r.iv),1)}%${S.ivShift?" (changed "+(S.ivShift>0?"+":"")+S.ivShift+"%)":""}</dd>
       <dt>Delta</dt><dd>${leapDelta(r)!=null?fn(leapDelta(r),2):"n/a"}</dd>
-      <dt>Bid-ask spread</dt><dd>${sp}</dd></dl></div>`}).join("")+`</div>`;
+      <dt>Bid-ask spread</dt><dd>${sp}</dd>
+      <dt>Open interest</dt><dd>${r.oi!=null?r.oi.toLocaleString():"n/a"}</dd></dl></div>`}).join("")+`</div>`;
 }
 let charts=[];
 function cw(){const el=$(S.tab==='cc'?'ccMain':S.tab==='put'?'putMain':'main');const w=el.clientWidth||$('ccTab').parentNode.clientWidth;return Math.max(300,Math.min(860,Math.round(w-30)))}
@@ -849,12 +856,12 @@ function render(){
   const main=$("main");
   const act=activeStrikes();
   if(!(S.spot>0)||!act.length){
-    main.innerHTML=`<div class="empty">Tick at least one strike and enter its mid price and implied volatility. Rows 2 and 3 are off by default; tick one to compare strikes.</div>`;charts=[];return}
+    main.innerHTML=`<div class="empty">Pick a strike with the slider above, or press Refresh to load the option chain.</div>`;$("leapTiles").innerHTML="";charts=[];return}
   if(S.view==="time"&&!S.exits.some(x=>x>0)){
-    main.innerHTML=tiles(act)+`<div class="empty">Enter at least one exit price to see return over time.</div>`;charts=[];return}
+    main.innerHTML=`<div class="empty">Set an exit price to see return over time.</div>`;$("leapTiles").innerHTML=tiles(act);charts=[];return}
   const list=S.view==="payoff"?payoffCharts(act):timeCharts(act);
   const leapMissing=missFor("leap",S.months)?`<div class="banner bad"><b>\u274C No LEAP chain found near ${esc($("months").selectedOptions[0]?.dataset.base||S.months+" months")} for ${esc(S.ticker)}.</b> Mid prices below are model estimates, not market quotes. Try another length.</div>`:"";
-  main.innerHTML=staleBanner()+leapMissing+tiles(act)+list.map(o=>o.html).join("");
+  main.innerHTML=staleBanner()+leapMissing+list.map(o=>o.html).join("");$("leapTiles").innerHTML=tiles(act);
   leapPriceRender();
   charts=list.map(o=>o.ctx);
   main.querySelectorAll("figure.chart").forEach((fig,k)=>{
