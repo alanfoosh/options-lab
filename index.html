@@ -238,7 +238,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 </section>
 
 
-<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 51 (built 2026-10-28)</p></div>
+<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 52 (built 2026-10-28)</p></div>
 <div class="stack" id="leapTab">
 <section class="panel pick" aria-label="LEAP and strikes">
   <fieldset>
@@ -621,7 +621,9 @@ function exitSliders(){
   $("xw0").classList.toggle("off",!(x>0));$("xt0").innerHTML=tickHtml(lo,hi,marks);
   const ks=strikeList(),ke=$("ks0");ke.max=Math.max(0,ks.length-1);
   if(r&&r.strike>0){let bi=0;ks.forEach((k,i)=>{if(Math.abs(k-r.strike)<Math.abs(ks[bi]-r.strike))bi=i});if(ke.value!==String(bi))ke.value=bi;if(document.activeElement!==$("kN"))$("kN").value=r.strike}
-  $("kt0").innerHTML=ks.length>1?tickHtml(ks[0],ks[ks.length-1],[{k:"today",p}]):"";
+  // the strike slider moves by listed strike, and listed strikes are unevenly spaced, so place marks by strike position, not by price
+  const kIdx=x=>{if(x<=ks[0])return 0;for(let i=1;i<ks.length;i++)if(x<=ks[i])return i-1+(x-ks[i-1])/(ks[i]-ks[i-1]);return ks.length-1};
+  $("kt0").innerHTML=ks.length>1?tickHtml(0,ks.length-1,[{k:"today",p:kIdx(p)}]).replace(/title="Today \$[^"]*"/,`title="Today $${fn(p)}"`):"";
   $("kKey").innerHTML=tickKey([{k:"today",p}])+(ks.length?`<span style="--c:transparent">Listed strikes $${fn(ks[0],0)} to $${fn(ks[ks.length-1],0)}</span>`:"");
   $("xKey").innerHTML=tickKey(marks).replace("Break-even","Break-even at midpoint");
 }
