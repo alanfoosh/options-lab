@@ -235,7 +235,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 </section>
 
 
-<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 48 (built 2026-10-28)</p></div>
+<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 49 (built 2026-10-28)</p></div>
 <div class="stack" id="leapTab">
 <section class="panel pick" aria-label="LEAP and strikes">
   <fieldset>
@@ -630,19 +630,7 @@ function sliderHtml(id,label,lo,hi,val,marks){
 function wireSlider(id,onv){const sl=$(id),nb=$(id+"N");if(!sl)return;
   sl.addEventListener("input",()=>{nb.value=sl.value;onv(+sl.value)});
   nb.addEventListener("input",()=>{const v=num(nb.value);if(v>0){sl.value=v;onv(v)}});onv(+nb.value,true)}
-const ccX={},putX={};
-function ccSliderHtml(r,be){
-  const p=S.spot,lo=Math.floor(p*0.7),hi=Math.ceil(Math.max(r.strike*1.15,p*1.3)),v=Math.round(Math.min(hi,Math.max(lo,ccX[S.ticker]||p)));
-  const marks=[{k:"today",p},{k:"strike",p:r.strike},be?{k:"be",p:be}:null,S.cc.mode==="basis"&&!S.cc.pmcc&&basisOf()>0?{k:"basis",p:basisOf()}:null].filter(Boolean);
-  return `<div class="panel pxsl"><div style="font-weight:600;margin-bottom:6px">Stock price at expiry (${esc(fdate(S.cc.expiry))})</div>${sliderHtml("ccXs","Price",lo,hi,v,marks)}<div class="out" id="ccXout"></div>${(S.cc.view||"pick")==="hold"?`<p class="hint" style="margin:4px 0 0">The chart below follows this price.</p>`:`<p class="hint" style="margin:4px 0 0">Open the "vs just holding" chart to see this price on the chart.</p>`}</div>`;
-}
-function ccSliderWire(r){
-  wireSlider("ccXs",(x,init)=>{if(!init)ccX[S.ticker]=x;const f=$("ccFig");if(f&&f._read&&!init)f._read(x);const pl=ccPL(r,x),cap=ccCapital(r),t=ccDaysT(),n=ccN(),called=x>=r.strike;
-    const what=S.cc.mode==="option"?(called?`The call ends in the money by $${fn(x-r.strike)} a share.`:`The call expires worthless and you keep the premium.`)
-      :S.cc.pmcc?(called?`The short call ends in the money; close it or roll it. Your LEAP is still open.`:`The short call expires worthless; your LEAP is still open.`)
-      :(called?`<b>Called away:</b> your ${n*100} shares are sold at $${fn(r.strike)}.`:`<b>You keep the shares</b> and the premium.`);
-    $("ccXout").innerHTML=`At $${fn(x)}: ${what} Profit/loss <b style="color:${pl>=0?"var(--gain)":"var(--loss)"}">${fs(pl)}</b> (${fp(pl/cap*100)}, ${fp(ann(pl/cap*100,t))}/yr).`});
-}
+const ccX={},putX={};   // ccX: kept so the hold chart can start at a remembered price (no slider now)
 function putSliderHtml(o){
   const c=o.c,p=o.spot,lo=Math.floor(Math.min(p,c.k)*0.7),hi=Math.ceil(p*1.2),v=Math.round(Math.min(hi,Math.max(lo,putX[o.sym]||p)));
   return `<div class="panel pxsl" style="margin-top:12px"><div style="font-weight:600;margin-bottom:6px">${esc(o.sym)} price at expiry (${esc(fdate(o.exp))}), selling the $${fn(c.k)} put</div>${sliderHtml("putXs","Price",lo,hi,v,[{k:"today",p},{k:"strike",p:c.k},{k:"be",p:c.be}])}<div class="out" id="putXout"></div></div>`;
@@ -1514,7 +1502,6 @@ function renderCC(){
   else if(!e)html+=`<div class="banner info">${(S.earnSrc||{})[S.ticker]==="none"?"Alpha Vantage lists no upcoming earnings date for "+esc(S.ticker)+". Add one above to check whether it falls before this expiry.":"Add the next earnings date above to check whether it falls before this expiry."}</div>`;
   if(pm&&diffDays(S.cc.expiry,S.expiry)<30)html+=`<div class="banner">The short call expires too close to the LEAP. Pick a shorter call or a longer LEAP.</div>`;
   const lo=S.spot*0.5,hi=S.spot*1.6;
-  html+=ccSliderHtml(act[0].r,ccBreakeven(act[0].r,lo,hi));
   html+=`<div class="tiles">`+act.map(({r,i})=>{
     const cap=ccCapital(r);
     const d=ccDelta(r),q=liq(r),prem=r.mid*100*n;
@@ -1554,7 +1541,7 @@ function renderCC(){
       const body=priceSet(r.strike).map(x=>`<tr><td>$${fn(x,x<20?2:0)}${Math.abs(x-r.strike)<0.01?" (strike)":Math.abs(x-S.spot)<0.01?" (today)":""}</td>${days.map(d=>{const v=bs(x,r.strike,(t-d)/365,ivx(r.iv)/100,S.rate/100)*100*n,net=r.mid*100*n-v;return `<td>${fm(v)}<small class="${cls(net)}">${fs(net)}</small></td>`}).join("")}</tr>`).join("");
       return `<div class="panel"><div style="font-weight:600;margin-bottom:4px"><span class="sw" style="display:inline-block;background:${colK(i)};margin-right:6px"></span>$${r.strike} call</div><div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${body}</tbody></table></div></div>`}).join("")+`</div></div>`;
   }
-  main.innerHTML=html;ccSliderWire(act[0].r);$("ccScanSlot").innerHTML=ccScanHtml();ccPriceRender();
+  main.innerHTML=html;$("ccScanSlot").innerHTML=ccScanHtml();ccPriceRender();
   chartObj.wire&&chartObj.wire();
   ccScanWire();
   ccSuggestNote();
