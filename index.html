@@ -100,6 +100,17 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 .topgrid{display:grid;grid-template-columns:minmax(120px,1fr) minmax(140px,1fr) minmax(160px,1fr) auto;gap:10px;align-items:end}
 .topgrid button{white-space:nowrap}
 .pick{display:grid;grid-template-columns:minmax(260px,1fr) minmax(0,2fr);gap:24px;align-items:start}
+.xrow{display:grid;grid-template-columns:52px 1fr 92px;gap:10px;align-items:center;margin:2px 0}
+.xrow .xl{font-weight:600;font-size:14px}
+.xrow input[type=number]{min-width:0}
+.trk{position:relative;min-width:0}.trk input[type=range]{width:100%;margin:0;display:block}
+.trk.off input[type=range]{opacity:.4}
+.ticks{position:relative;height:9px;margin:0 8px}
+.ticks i{position:absolute;top:1px;width:2px;height:8px;margin-left:-1px;border-radius:1px}
+.tkey{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin:6px 0 0}
+.tkey span::before{content:"";display:inline-block;width:3px;height:10px;margin-right:5px;vertical-align:-1px;background:var(--c)}
+.pxsl{margin:0 0 12px}.pxsl .out{font-size:14px;margin-top:6px;line-height:1.45}
+@media (max-width:520px){.xrow{grid-template-columns:44px 1fr 76px;gap:8px}}
 .more{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px;align-items:start}
 @media(max-width:900px){.pick{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:600px){.topgrid{grid-template-columns:1fr 1fr}.topgrid button{grid-column:1/-1}}
@@ -224,7 +235,7 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 </section>
 
 
-<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 46 (built 2026-10-26)</p></div>
+<div class="stack" id="setTab" hidden><div id="setSlot"></div><p class="hint" id="setNote">Sign in with the Account box at the top of the page. Once you are signed in, it moves here.</p><p class="hint" id="appVer" style="margin:12px 2px 0">Options Scenario Lab, version 47 (built 2026-10-28)</p></div>
 <div class="stack" id="leapTab">
 <section class="panel pick" aria-label="LEAP and strikes">
   <fieldset>
@@ -253,12 +264,12 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
 
 <section class="panel" id="timeInputs" aria-label="Exit prices"><fieldset>
       <legend>Exit prices: where the stock is when you sell</legend>
-      <div class="grid2" style="grid-template-columns:repeat(3,1fr)">
-        <label class="f">Exit 1<input type="number" id="x0" inputmode="decimal" step="1" min="1"></label>
-        <label class="f">Exit 2<input type="number" id="x1" inputmode="decimal" step="1" min="1"></label>
-        <label class="f">Exit 3<input type="number" id="x2" inputmode="decimal" step="1" min="1"></label>
-      </div>
-      <p class="hint">Defaults for a new ticker: Exit 1 is 90% of the 52-week high (or 15% above today if that is less than 10% above today). Exit 2 is the break-even at the midpoint date, the price where the first strike is worth what you paid halfway to expiry. Exit 3 is a downside check 15% below today. The stock is assumed to sit at the exit price on the day you sell. Leave a box empty to hide that chart.</p>
+      <div class="xrow"><label class="xl" for="xs0">Exit 1</label><div class="trk" id="xw0"><input type="range" id="xs0" step="1" aria-label="Exit 1 price slider"><div class="ticks" id="xt0" aria-hidden="true"></div></div><input type="number" id="x0" inputmode="decimal" step="1" min="1" aria-label="Exit 1 price in dollars"></div>
+      <div class="xrow"><label class="xl" for="xs1">Exit 2</label><div class="trk" id="xw1"><input type="range" id="xs1" step="1" aria-label="Exit 2 price slider"><div class="ticks" id="xt1" aria-hidden="true"></div></div><input type="number" id="x1" inputmode="decimal" step="1" min="1" aria-label="Exit 2 price in dollars"></div>
+      <div class="xrow"><label class="xl" for="xs2">Exit 3</label><div class="trk" id="xw2"><input type="range" id="xs2" step="1" aria-label="Exit 3 price slider"><div class="ticks" id="xt2" aria-hidden="true"></div></div><input type="number" id="x2" inputmode="decimal" step="1" min="1" aria-label="Exit 3 price in dollars"></div>
+      <div class="tkey" id="xKey"></div>
+      <div class="btnrow" style="margin-top:8px"><button type="button" id="xReset">Reset to defaults</button></div>
+      <p class="hint">Defaults: Exit 1 is 90% of the 52-week high (or +15% if that is less than 10% above today). Exit 2 is the break-even at the midpoint date, where strike 1 is worth what you paid. Exit 3 is 15% below today. Sliders run from 50% below today to 10% above the 52-week high, and the charts update as you drag. The stock is assumed to sit at the exit price on the day you sell. An empty box hides that chart.</p>
     </fieldset></section>
 <div id="leapPx"></div>
 <main class="main" id="main" aria-live="off"></main>
@@ -353,9 +364,10 @@ footer{margin-top:22px;color:var(--muted);font-size:12px;max-width:90ch}
         <label class="f">Risk-free rate (%)<input type="number" id="rate" inputmode="decimal" step="0.1"></label>
       </div>
       <p class="hint">The rate is the risk-free rate used in the option pricing model (what cash earns), not a borrowing cost. It has a small effect; 0 is the default.</p>
-      <label class="f" style="margin-top:10px">Volatility shift: <b id="shiftVal" style="color:var(--ink)"></b>
-        <input type="range" id="ivShift" min="-20" max="20" step="1"></label>
-      <p class="hint">Shifts every strike's implied volatility by this many points, for example -10 if you expect volatility to fall after earnings.</p>
+      <label class="f" style="margin-top:10px">Volatility change: <b id="shiftVal" style="color:var(--ink)"></b>
+        <input type="range" id="ivShift" min="-50" max="50" step="5"></label>
+      <div id="ivRead" style="font-size:14px;margin-top:4px;line-height:1.45"></div>
+      <p class="hint">Scales every option's implied volatility, for example -30% if you expect volatility to fall after earnings. Volatility usually drops after earnings, which cuts option values even if the price doesn't move. Applies to model values on every tab.</p>
     </fieldset>
 
     <fieldset id="payInputs">
@@ -574,6 +586,61 @@ function defaultExits(){ // 1: 90% of the 52-week high (or +15% if that is not a
   }
   return [up,be,Math.round(p*0.85)];
 }
+function beMid(){ // stock price where strike 1 is worth what was paid, halfway to expiry
+  const r=S.strikes[0],T=totalDays()/2/365;if(!(r&&r.strike>0&&r.mid>0&&r.iv>0))return null;
+  const f=x=>bs(x,r.strike,T,ivx(r.iv)/100,S.rate/100)-r.mid;let lo=0.01,hi=Math.max(S.spot,r.strike)*4;if(f(hi)<=0)return null;
+  for(let k=0;k<80;k++){const m=(lo+hi)/2;if(f(m)>0)hi=m;else lo=m}return hi;
+}
+const TK={today:["var(--ink)","Today"],strike:["var(--loss)","Strike"],be:["var(--gain)","Break-even"],high:["var(--k1)","52-week high"],basis:["var(--k2)","Cost basis"]};
+function tickHtml(lo,hi,marks){return marks.filter(m=>m.p>=lo&&m.p<=hi).map(m=>`<i style="left:${((m.p-lo)/(hi-lo)*100).toFixed(2)}%;background:${TK[m.k][0]}" title="${TK[m.k][1]} $${fn(m.p)}"></i>`).join("")}
+function tickKey(marks){const seen={};return marks.filter(m=>m.p>0&&!seen[m.k]&&(seen[m.k]=1)).map(m=>`<span style="--c:${TK[m.k][0]}">${TK[m.k][1]} $${fn(m.p,m.p<20?2:0)}</span>`).join("")}
+function exitSliders(){
+  if(!(S.spot>0)||!$("xs0"))return;
+  const p=S.spot,lo=Math.max(1,Math.floor(p*0.5)),top=S.high>0?S.high*1.1:p*1.5,hi=Math.ceil(Math.max(top,p*1.1));
+  const r=S.strikes[0],b=beMid(),marks=[{k:"today",p},r&&r.strike>0?{k:"strike",p:r.strike}:null,b?{k:"be",p:b}:null,S.high>0?{k:"high",p:S.high}:null].filter(Boolean);
+  const th=tickHtml(lo,hi,marks);
+  [0,1,2].forEach(i=>{const el=$("xs"+i),x=S.exits[i];el.min=lo;el.max=hi;const v=String(Math.round(x>0?x:p));if(el.value!==v)el.value=v;
+    $("xw"+i).classList.toggle("off",!(x>0));$("xt"+i).innerHTML=th});
+  $("xKey").innerHTML=tickKey(marks).replace("Break-even","Break-even at midpoint");
+}
+function ivReadout(){
+  $("shiftVal").textContent=S.ivShift?(S.ivShift>0?"+":"")+S.ivShift+"% (volatility × "+fn(1+S.ivShift/100,2)+")":"none";
+  const el=$("ivRead");if(!el)return;
+  const a=activeStrikes()[0],x=S.exits.find(v=>v>0),t=totalDays(),d=Math.round(t/2);
+  if(S.tab!=="leap"||!a||!x){el.textContent="";return}
+  const r=a.r,now=retAt(r,x,d,t),sv=S.ivShift;S.ivShift=0;const base=retAt(r,x,d,t);S.ivShift=sv;
+  el.innerHTML=`Strike ${a.i+1} ($${fn(r.strike)}) with the stock at $${fn(x)} on the midpoint date (${esc(fdate(addDays(S.dataDate,d)))}): `+(sv?`<b>${fp(base)} → ${fp(now)}</b> return.`:`<b>${fp(now)}</b> return. Move the slider to see the effect.`);
+}
+function sliderHtml(id,label,lo,hi,val,marks){
+  return `<div class="xrow" style="grid-template-columns:auto 1fr 92px"><label class="xl" for="${id}">${label}</label><div class="trk"><input type="range" id="${id}" min="${lo}" max="${hi}" step="${hi-lo>60?1:0.5}" value="${val}"><div class="ticks" aria-hidden="true">${tickHtml(lo,hi,marks)}</div></div><input type="number" id="${id}N" inputmode="decimal" step="any" value="${val}" aria-label="${label} in dollars"></div><div class="tkey">${tickKey(marks)}</div>`;
+}
+function wireSlider(id,onv){const sl=$(id),nb=$(id+"N");if(!sl)return;
+  sl.addEventListener("input",()=>{nb.value=sl.value;onv(+sl.value)});
+  nb.addEventListener("input",()=>{const v=num(nb.value);if(v>0){sl.value=v;onv(v)}});onv(+nb.value,true)}
+const ccX={},putX={};
+function ccSliderHtml(r,be){
+  const p=S.spot,lo=Math.floor(p*0.7),hi=Math.ceil(Math.max(r.strike*1.15,p*1.3)),v=Math.round(Math.min(hi,Math.max(lo,ccX[S.ticker]||p)));
+  const marks=[{k:"today",p},{k:"strike",p:r.strike},be?{k:"be",p:be}:null,S.cc.mode==="basis"&&!S.cc.pmcc&&basisOf()>0?{k:"basis",p:basisOf()}:null].filter(Boolean);
+  return `<div class="panel pxsl"><div style="font-weight:600;margin-bottom:6px">Stock price at expiry (${esc(fdate(S.cc.expiry))})</div>${sliderHtml("ccXs","Price",lo,hi,v,marks)}<div class="out" id="ccXout"></div></div>`;
+}
+function ccSliderWire(r){
+  wireSlider("ccXs",(x,init)=>{if(!init)ccX[S.ticker]=x;const pl=ccPL(r,x),cap=ccCapital(r),t=ccDaysT(),n=ccN(),called=x>=r.strike;
+    const what=S.cc.mode==="option"?(called?`The call ends in the money by $${fn(x-r.strike)} a share.`:`The call expires worthless and you keep the premium.`)
+      :S.cc.pmcc?(called?`The short call ends in the money; close it or roll it. Your LEAP is still open.`:`The short call expires worthless; your LEAP is still open.`)
+      :(called?`<b>Called away:</b> your ${n*100} shares are sold at $${fn(r.strike)}.`:`<b>You keep the shares</b> and the premium.`);
+    $("ccXout").innerHTML=`At $${fn(x)}: ${what} Profit/loss <b style="color:${pl>=0?"var(--gain)":"var(--loss)"}">${fs(pl)}</b> (${fp(pl/cap*100)}, ${fp(ann(pl/cap*100,t))}/yr).`});
+}
+function putSliderHtml(o){
+  const c=o.c,p=o.spot,lo=Math.floor(Math.min(p,c.k)*0.7),hi=Math.ceil(p*1.2),v=Math.round(Math.min(hi,Math.max(lo,putX[o.sym]||p)));
+  return `<div class="panel pxsl" style="margin-top:12px"><div style="font-weight:600;margin-bottom:6px">${esc(o.sym)} price at expiry (${esc(fdate(o.exp))}), selling the $${fn(c.k)} put</div>${sliderHtml("putXs","Price",lo,hi,v,[{k:"today",p},{k:"strike",p:c.k},{k:"be",p:c.be}])}<div class="out" id="putXout"></div></div>`;
+}
+function putSliderWire(o){
+  const c=o.c,cash=c.k*100;
+  wireSlider("putXs",(x,init)=>{if(!init)putX[o.sym]=x;
+    $("putXout").innerHTML=x>=c.k?`At $${fn(x)}: <b>the put expires worthless.</b> You keep ${fm(c.mid*100)}, <b style="color:var(--gain)">+${fn(c.mid/c.k*100,2)}%</b> on the ${fm(cash)} set aside (${fp(c.ann).replace("+","")} a year).`
+      :(pl=>`At $${fn(x)}: <b>you are assigned</b> and buy 100 shares at $${fn(c.k)}. Your effective cost is $${fn(c.be)} a share after the premium. At $${fn(x)} that is <b style="color:${pl>=0?"var(--gain)":"var(--loss)"}">${fs(pl)}</b> (${pl<0?"−":"+"}${fn(Math.abs(pl/cash*100),1)}% of the cash set aside).`)((x-c.be)*100)});
+}
+
 let stamp=null;
 function save(){try{if(!S.ticker)return;localStorage.setItem(KEY,JSON.stringify(S));if(S.ticker)localStorage.setItem(KEY+"-ticker",S.ticker)}catch(e){}}
 
@@ -605,7 +672,7 @@ function syncInputs(){
 function derived(){
   const t=totalDays();
   $("months").querySelectorAll("option").forEach(o=>{const base=o.dataset.base||(o.dataset.base=o.textContent);o.textContent=missFor("leap",+o.value)?"\u274C "+base+" (no chain)":base});
-  $("shiftVal").textContent=(S.ivShift>0?"+":"")+S.ivShift+" points";
+  ivReadout();exitSliders();
   const ex=$("extraDay");ex.max=Math.max(2,t-1);if(+ex.value!==S.extraDay||ex.value==="")ex.value=Math.min(S.extraDay,t-1);
   $("extraVal").textContent="day "+Math.min(S.extraDay,t-1)+" ("+fdate(addDays(S.dataDate,Math.min(S.extraDay,t-1)))+")";
   const v={seed:"Listed in the Oct 20 end-of-day chain. Press Refresh to reload it.",chain:"Listed in the latest chain.",none:"Not checked against the chain yet. Press Refresh to look for the nearest listed expiry."}[S.expVerified]||"";
@@ -633,7 +700,7 @@ function leapDelta(r){
   if(!(r.strike>0))return null;
   if((r.src==="chain"||r.src==="seed")&&r.delta!=null&&!S.ivShift&&quoteSpotOk())return r.delta;
   if(!(r.iv>0))return null;
-  return bsDelta(S.spot,r.strike,totalDays()/365,(r.iv+S.ivShift)/100,S.rate/100);
+  return bsDelta(S.spot,r.strike,totalDays()/365,ivx(r.iv)/100,S.rate/100);
 }
 function quoteSpotOk(){return Math.abs(S.spot-(S.loaded?S.loaded.spot:227.37))<0.005}  // chain deltas only hold at the price they were quoted at
 function markMiss(kind,v,ok){
@@ -667,6 +734,8 @@ function onInput(e){
   if(/^cc/.test(id)){onCC(e);return}
   if(/^put/.test(id))return;   // the put tab has its own handlers
   if(id==="srOn"){S.srOn=$("srOn").checked;save();schedule();return}
+  if(/^xs\d$/.test(id)){const i=+id[2],v=+e.target.value;$("x"+i).value=v;S.exits[i]=v;$("xw"+i).classList.remove("off");if(e.type==="change")save();schedule();return}
+  if(id==="ivShift"){S.ivShift=+e.target.value||0;ivReadout();if(e.type==="change"){derived();save()}schedule();return}
   if(id==="ticker"&&e.type==="change"&&S.loaded&&$("ticker").value.trim().toUpperCase()!==S.loaded.ticker)chain=[];
   if(id==="ticker"&&e.type==="change"){const t=($("ticker").value||"").trim().toUpperCase();if(!S.loaded||t!==S.loaded.ticker)ccChain=[];S.ticker=t;ccSync()}
   if(id==="ticker"&&e.type==="change"&&S.ticker&&S.ticker!==dataTicker()){derived();save();schedule();refresh();return}
@@ -720,6 +789,7 @@ function spreadLabels(items,minGap){ // items {y}; returns adjusted y so labels 
   for(let k=1;k<s.length;k++)if(s[k].o.y-s[k-1].o.y<minGap)s[k].o.y=s[k-1].o.y+minGap;
   return items;
 }
+const ivx=v=>v*(1+(S.ivShift||0)/100);   // implied volatility after the volatility change slider
 function activeStrikes(){return S.strikes.map((r,i)=>({r,i})).filter(o=>o.r.on&&o.r.strike>0&&o.r.mid>0&&o.r.iv>0)}
 const colK=i=>`var(--k${i})`;
 
@@ -736,8 +806,8 @@ function horizons(){
     h.name=h.label+" ("+fmon(addDays(S.dataDate,h.d))+")"});
   return list;
 }
-const plAt=(r,x,d,t)=>(bs(x,r.strike,(t-d)/365,(r.iv+S.ivShift)/100,S.rate/100)-r.mid)*100*S.contracts;
-const retAt=(r,x,d,t)=>(bs(x,r.strike,(t-d)/365,(r.iv+S.ivShift)/100,S.rate/100)/r.mid-1)*100;
+const plAt=(r,x,d,t)=>(bs(x,r.strike,(t-d)/365,ivx(r.iv)/100,S.rate/100)-r.mid)*100*S.contracts;
+const retAt=(r,x,d,t)=>(bs(x,r.strike,(t-d)/365,ivx(r.iv)/100,S.rate/100)/r.mid-1)*100;
 
 function payoffCharts(act){
   const t=totalDays(),hz=horizons(),n=S.contracts,spot=S.spot;
@@ -860,7 +930,7 @@ function timeCharts(act){
 }
 function timeReadout(ctx,d,el,svg){
   const {act,series,sx,sy,t,X,n}=ctx;d=Math.max(0,Math.min(t,Math.round(d)));
-  const rows=act.map(({r,i},k)=>{const v=bs(X,r.strike,(t-d)/365,(r.iv+S.ivShift)/100,S.rate/100)*100*n,pl=v-r.mid*100*n;
+  const rows=act.map(({r,i},k)=>{const v=bs(X,r.strike,(t-d)/365,ivx(r.iv)/100,S.rate/100)*100*n,pl=v-r.mid*100*n;
     return `<tr><td><span class="sw" style="display:inline-block;background:${colK(i)};margin-right:6px;vertical-align:-1px"></span>$${r.strike} call</td><td>${fm(v)}</td><td class="${cls(pl)}">${fs(pl)}</td><td class="${cls(pl)}">${fp(series[k][d])}</td></tr>`}).join("");
   el.innerHTML=`<table><caption>Sold on ${fdate(addDays(S.dataDate,d))} (day ${d} of ${t}), stock at $${X} (${fp(ctx.stock)})</caption><thead><tr><th>LEAP</th><th>Sale value</th><th>Profit/loss</th><th>Return</th></tr></thead><tbody>${rows}</tbody></table>`;
   const hov=svg.querySelector(".hov");hov.style.display="";
@@ -878,7 +948,7 @@ function tiles(act){
       <dt>Cost</dt><dd>${fm(cost)}</dd>
       <dt>Break-even at expiry</dt><dd>$${fn(be,2)} (${fp((be/S.spot-1)*100)})</dd>
       <dt>Time value in the price</dt><dd>${fm(tv*100*n)} (${fn(tv/r.mid*100,0)}%)</dd>
-      <dt>Implied volatility</dt><dd>${fn(r.iv+S.ivShift,1)}%${S.ivShift?" (shifted)":""}</dd>
+      <dt>Implied volatility</dt><dd>${fn(ivx(r.iv),1)}%${S.ivShift?" (changed "+(S.ivShift>0?"+":"")+S.ivShift+"%)":""}</dd>
       <dt>Delta</dt><dd>${leapDelta(r)!=null?fn(leapDelta(r),2):"n/a"}</dd>
       <dt>Bid-ask spread</dt><dd>${sp}</dd></dl></div>`}).join("")+`</div>`;
 }
@@ -1191,7 +1261,7 @@ async function exportCsv(){
   const prices=[...new Set([0.8,0.9,1,1.15,1.3,1.5].map(f=>Math.round(S.spot*f)).concat(S.high?[Math.round(S.high)]:[]))].sort((a,b)=>a-b);
   const rows=[["ticker","strike","expiry","sale_date","stock_price","profit_loss_usd","return_pct","entry_mid","iv_pct"]];
   act.forEach(({r})=>hz.forEach(h=>prices.forEach(x=>{
-    rows.push([S.ticker,r.strike,S.expiry,addDays(S.dataDate,h.d),x,Math.round(plAt(r,x,h.d,t)),retAt(r,x,h.d,t).toFixed(1),r.mid,(r.iv+S.ivShift).toFixed(1)])})));
+    rows.push([S.ticker,r.strike,S.expiry,addDays(S.dataDate,h.d),x,Math.round(plAt(r,x,h.d,t)),retAt(r,x,h.d,t).toFixed(1),r.mid,ivx(r.iv).toFixed(1)])})));
   try{await dl.save({filename:`${S.ticker.toLowerCase()}-leap-scenarios.csv`,data:rows.map(r=>r.join(",")).join("\n")})}catch(e){}
 }
 
@@ -1279,14 +1349,14 @@ function ccFill(i){
 function ccDelta(r){
   if(r.src!=="typed"&&r.delta!=null&&!S.ivShift&&quoteSpotOk())return r.delta;
   if(!(r.iv>0&&r.strike>0))return null;
-  return bsDelta(S.spot,r.strike,ccDaysT()/365,(r.iv+S.ivShift)/100,S.rate/100);
+  return bsDelta(S.spot,r.strike,ccDaysT()/365,ivx(r.iv)/100,S.rate/100);
 }
 function ccSetByPct(p,allOn){p.forEach((f,i)=>{const r=S.cc.strikes[i];r.on=allOn||i===0;r.strike=ccRound(S.spot*(1+f));ccFill(i)})}
 function ccSetByDelta(ds){
   ds.forEach((dv,i)=>{
     const r=S.cc.strikes[i];r.on=true;
     if(ccChain.length){const T=ccDaysT()/365,useQ=quoteSpotOk()&&!S.ivShift;let b=null,bd=9;
-      ccChain.forEach(c=>{if(!(c.mark>=0.05))return;const d=useQ&&c.delta>0?c.delta:bsDelta(S.spot,c.k,T,(c.iv*100+S.ivShift)/100,S.rate/100);if(Math.abs(d-dv)<bd){bd=Math.abs(d-dv);b=c}});if(b)r.strike=b.k}
+      ccChain.forEach(c=>{if(!(c.mark>=0.05))return;const d=useQ&&c.delta>0?c.delta:bsDelta(S.spot,c.k,T,ivx(c.iv*100)/100,S.rate/100);if(Math.abs(d-dv)<bd){bd=Math.abs(d-dv);b=c}});if(b)r.strike=b.k}
     else{ // model: search strikes for the target delta
       const iv=(S.cc.strikes[0].iv||50)/100,T=ccDaysT()/365;let best=S.spot,bd=9;
       for(let x=S.spot*0.7;x<=S.spot*1.6;x+=S.spot*0.005){const d=Math.abs(bsDelta(S.spot,x,T,iv,S.rate/100)-dv);if(d<bd){bd=d;best=x}}
@@ -1397,13 +1467,13 @@ function ccPL(r,x){
   const n=ccN(),t=ccDaysT(),short=(r.mid-Math.max(x-r.strike,0))*100*n;
   if(S.cc.mode==="option")return short;
   if(S.cc.pmcc){const L=activeStrikes()[0].r,tl=totalDays();
-    return (bs(x,L.strike,Math.max(0,tl-t)/365,(L.iv+S.ivShift)/100,S.rate/100)-L.mid)*100*n+short}
+    return (bs(x,L.strike,Math.max(0,tl-t)/365,ivx(L.iv)/100,S.rate/100)-L.mid)*100*n+short}
   return (x-S.spot)*shs()+short+(S.cc.mode==="basis"?(S.spot-basisOf())*shs():0);
 }
 function ccBase(x){ // the same position without the call
   if(S.cc.mode==="option")return 0;
   if(S.cc.pmcc){const L=activeStrikes()[0].r,n=ccN(),t=ccDaysT(),tl=totalDays();
-    return (bs(x,L.strike,Math.max(0,tl-t)/365,(L.iv+S.ivShift)/100,S.rate/100)-L.mid)*100*n}
+    return (bs(x,L.strike,Math.max(0,tl-t)/365,ivx(L.iv)/100,S.rate/100)-L.mid)*100*n}
   return (x-S.spot)*shs()+(S.cc.mode==="basis"?(S.spot-basisOf())*shs():0);
 }
 function ccCapital(r){
@@ -1427,6 +1497,7 @@ function renderCC(){
   else if(!e)html+=`<div class="banner info">${(S.earnSrc||{})[S.ticker]==="none"?"Alpha Vantage lists no upcoming earnings date for "+esc(S.ticker)+". Add one above to check whether it falls before this expiry.":"Add the next earnings date above to check whether it falls before this expiry."}</div>`;
   if(pm&&diffDays(S.cc.expiry,S.expiry)<30)html+=`<div class="banner">The short call expires too close to the LEAP. Pick a shorter call or a longer LEAP.</div>`;
   const lo=S.spot*0.5,hi=S.spot*1.6;
+  html+=ccSliderHtml(act[0].r,ccBreakeven(act[0].r,lo,hi));
   html+=`<div class="tiles">`+act.map(({r,i})=>{
     const cap=ccCapital(r);
     const d=ccDelta(r),q=liq(r),prem=r.mid*100*n;
@@ -1463,10 +1534,10 @@ function renderCC(){
   if(days.length){
     html+=`<div><div style="font-weight:600;margin:4px 0 2px">Cost to buy back the call (to close or roll)</div><div class="capsub">Model value per ${n} contract${n>1?"s":""}, with the net against the premium you took in.</div><div class="bb">`+act.map(({r,i})=>{
       const head=`<tr><th>${esc(S.ticker)} at</th>${days.map(d=>`<th>${fmon(addDays(S.dataDate,d)).replace(/ \d+$/,"")} ${new Date(pd(addDays(S.dataDate,d))).getUTCDate()}<small>day ${d}</small></th>`).join("")}</tr>`;
-      const body=priceSet(r.strike).map(x=>`<tr><td>$${fn(x,x<20?2:0)}${Math.abs(x-r.strike)<0.01?" (strike)":Math.abs(x-S.spot)<0.01?" (today)":""}</td>${days.map(d=>{const v=bs(x,r.strike,(t-d)/365,(r.iv+S.ivShift)/100,S.rate/100)*100*n,net=r.mid*100*n-v;return `<td>${fm(v)}<small class="${cls(net)}">${fs(net)}</small></td>`}).join("")}</tr>`).join("");
+      const body=priceSet(r.strike).map(x=>`<tr><td>$${fn(x,x<20?2:0)}${Math.abs(x-r.strike)<0.01?" (strike)":Math.abs(x-S.spot)<0.01?" (today)":""}</td>${days.map(d=>{const v=bs(x,r.strike,(t-d)/365,ivx(r.iv)/100,S.rate/100)*100*n,net=r.mid*100*n-v;return `<td>${fm(v)}<small class="${cls(net)}">${fs(net)}</small></td>`}).join("")}</tr>`).join("");
       return `<div class="panel"><div style="font-weight:600;margin-bottom:4px"><span class="sw" style="display:inline-block;background:${colK(i)};margin-right:6px"></span>$${r.strike} call</div><div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${body}</tbody></table></div></div>`}).join("")+`</div></div>`;
   }
-  main.innerHTML=html;$("ccScanSlot").innerHTML=ccScanHtml();ccPriceRender();
+  main.innerHTML=html;ccSliderWire(act[0].r);$("ccScanSlot").innerHTML=ccScanHtml();ccPriceRender();
   chartObj.wire&&chartObj.wire();
   ccScanWire();
   ccSuggestNote();
@@ -1475,7 +1546,7 @@ function renderCC(){
 /* ---------- covered call: strike candidates, suggestion, charts ---------- */
 function ccSigma(){ // at-the-money IV for the expiry in use
   let iv=null,b=null;ccChain.forEach(c=>{if(!b||Math.abs(c.k-S.spot)<Math.abs(b.k-S.spot))b=c});
-  iv=b?b.iv*100:(S.cc.strikes[0].iv||50);return (iv+S.ivShift)/100;
+  iv=b?b.iv*100:(S.cc.strikes[0].iv||50);return ivx(iv)/100;
 }
 function ccExpMove(){const t=ccDaysT(),em=S.spot*ccSigma()*Math.sqrt(t/365);return {lo:S.spot-em,hi:S.spot+em,pct:em/S.spot*100}}
 function ccNextRes(){if(!S.srOn)return null;return srList().filter(l=>l.side==="R"&&l.p>S.spot*1.001).sort((a,b)=>a.p-b.p)[0]||null}
@@ -1483,13 +1554,13 @@ function ccCands(){
   const t=ccDaysT(),T=t/365,useQ=quoteSpotOk()&&!S.ivShift,out=[];
   if(ccChain.length){
     ccChain.forEach(c=>{if(c.k<S.spot*0.95||c.k>S.spot*1.5||!(c.mark>=0.05))return;
-      const d=useQ&&c.delta>0?c.delta:bsDelta(S.spot,c.k,T,(c.iv*100+S.ivShift)/100,S.rate/100);
+      const d=useQ&&c.delta>0?c.delta:bsDelta(S.spot,c.k,T,ivx(c.iv*100)/100,S.rate/100);
       const q=liq({bid:c.bid,ask:c.ask,mid:c.mark,oi:c.oi});
       out.push({k:c.k,mid:c.mark,bid:c.bid,ask:c.ask,oi:c.oi,vol:c.vol,iv:c.iv*100,d,q,quote:true})});
   }else{
     const iv=S.cc.strikes[0].iv||50,seen=new Set();
     for(let f=0.97;f<=1.4;f+=0.01){const k=ccRound(S.spot*f);if(seen.has(k))continue;seen.add(k);
-      const sig=(iv+S.ivShift)/100,mid=bs(S.spot,k,T,sig,S.rate/100);if(mid<0.05)continue;
+      const sig=ivx(iv)/100,mid=bs(S.spot,k,T,sig,S.rate/100);if(mid<0.05)continue;
       out.push({k,mid,iv,d:bsDelta(S.spot,k,T,sig,S.rate/100),q:{cls:"",txt:"model"},quote:false})}
   }
   out.forEach(c=>{c.yld=c.mid/S.spot*100*365/t;c.per=c.mid/S.spot*100});
@@ -1669,7 +1740,7 @@ function ccExpRows(sel){
     let exp=row&&row.exp||ccTries(S.dataDate,days)[0],t=Math.max(1,diffDays(S.dataDate,exp)),T=t/365;
     let pick=null,model=false,status=row?row.status:null;
     if(row&&row.calls){
-      row.calls.forEach(c=>{if(!(c.mark>=0.05)||c.k<S.spot*0.9)return;const d=useQ&&c.delta>0?c.delta:bsDelta(S.spot,c.k,T,(c.iv*100+S.ivShift)/100,S.rate/100);
+      row.calls.forEach(c=>{if(!(c.mark>=0.05)||c.k<S.spot*0.9)return;const d=useQ&&c.delta>0?c.delta:bsDelta(S.spot,c.k,T,ivx(c.iv*100)/100,S.rate/100);
         if(!pick||Math.abs(d-tdel)<Math.abs(pick.d-tdel))pick={k:c.k,mid:c.mark,d,q:liq({bid:c.bid,ask:c.ask,mid:c.mark,oi:c.oi})}});
     }
     if(!pick&&status!=="loading"){ // model at the same delta
@@ -1739,6 +1810,7 @@ document.querySelectorAll(".ccDeltaBtn").forEach(b=>b.onclick=()=>{
   if(b.dataset.delta)ccSetByDelta([+b.dataset.delta]);else ccSetByPct([+b.dataset.pct],false);
   ccRemember();ccSync();save();schedule()});
 [["cvPick","pick"],["cvHold","hold"],["cvExp","exp"]].forEach(([id,v])=>$(id).onclick=()=>{S.cc.view=v;ccDerived();save();render()});
+$("xReset").addEventListener("click",()=>{S.exits=defaultExits();syncInputs();derived();save();schedule()});
 document.querySelector(".stack").addEventListener("input",onInput);
 document.querySelector(".stack").addEventListener("change",onInput);
 $("vPayoff").onclick=()=>{S.view="payoff";derived();save();render()};
@@ -2017,6 +2089,7 @@ function renderPut(){
   if(op){const r0=putRes[op.sym+"|"+S.put.days];if(r0&&r0.status==="ok"&&!(r0.hist&&r0.hist.c.length>=70)&&!putQueue.includes(op.sym)&&!putScanning)putScan([op.sym])}   // older saved results have no price history: fetch it once
   const px=op?putPriceChart(op):null;
   if(px)html+=px.html;
+  if(op&&op.c)html+=putSliderHtml(op);
   const chart=op?putPickChart(op):null;
   if(chart)html+=chart.html;
   main.innerHTML=html;
@@ -2024,6 +2097,7 @@ function renderPut(){
     S.put.sort=S.put.sort.col===id?{col:id,dir:-S.put.sort.dir}:{col:id,dir:["sym","d","sp","be","exp","earn","k"].includes(id)?1:-1};save();renderPut()});
   main.querySelectorAll("tbody tr[data-sym]").forEach(tr=>tr.onclick=()=>{const s=tr.dataset.sym;S.put.open=S.put.open===s?null:s;save();putDerived();renderPut()});
   px&&px.wire&&px.wire();
+  if(op&&op.c)putSliderWire(op);
   chart&&chart.wire&&chart.wire();
 }
 function putPickChart(o){
